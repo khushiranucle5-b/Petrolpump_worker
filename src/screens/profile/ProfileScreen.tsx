@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   roleChipText: {
     ...typography.badge,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
   },
   infoCard: {
     backgroundColor: colors.surface,
