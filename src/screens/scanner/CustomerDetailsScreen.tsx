@@ -232,6 +232,12 @@ export const CustomerDetailsScreen: React.FC = () => {
                 leftIcon="lock"
                 style={styles.verifyOtpBtn}
               />
+              <TouchableOpacity
+                onPress={() => Alert.alert('OTP Resent', 'A new OTP has been sent to the customer.')}
+                style={{ marginTop: 16, alignItems: 'center', alignSelf: 'center', padding: 8 }}
+              >
+                <Text style={{ color: colors.accent, fontWeight: 'bold' }}>Resend OTP</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}

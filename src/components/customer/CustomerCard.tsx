@@ -19,6 +19,8 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
   customer,
   showDiscountPill = true,
 }) => {
+  const [imageError, setImageError] = React.useState(false);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -33,10 +35,11 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
       {/* Top Header Row with Customer Photo & Main Info */}
       <View style={styles.headerRow}>
         <View style={styles.avatarContainer}>
-          {customer.profilePhotoUrl ? (
+          {customer.profilePhotoUrl && !imageError ? (
             <Image
               source={{ uri: customer.profilePhotoUrl }}
               style={styles.avatar}
+              onError={() => setImageError(true)}
             />
           ) : (
             <View style={styles.avatarFallback}>
@@ -60,12 +63,6 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           <Text style={[typography.caption, styles.customerId]}>
             ID: {customer.customerId}
           </Text>
-          <View style={styles.phoneRow}>
-            <Icon name="phone" size={12} color={colors.textSecondary} />
-            <Text style={[typography.bodySmall, styles.phoneText]}>
-              {customer.mobileNumber}
-            </Text>
-          </View>
         </View>
       </View>
 
@@ -87,29 +84,6 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           )}
         </View>
 
-        <View style={styles.groupTags}>
-          <View style={styles.tag}>
-            <Text style={[typography.caption, styles.tagText]}>
-              {customer.group.groupType}
-            </Text>
-          </View>
-          {customer.vehicleNumber && (
-            <View style={styles.tag}>
-              <Icon name="car" size={12} color={colors.textSecondary} />
-              <Text style={[typography.caption, styles.tagText, { marginLeft: 4 }]}>
-                {customer.vehicleNumber}
-              </Text>
-            </View>
-          )}
-          {customer.fuelPreference && (
-            <View style={styles.tag}>
-              <Icon name="fuel" size={12} color={colors.textSecondary} />
-              <Text style={[typography.caption, styles.tagText, { marginLeft: 4 }]}>
-                {customer.fuelPreference}
-              </Text>
-            </View>
-          )}
-        </View>
       </View>
     </View>
   );

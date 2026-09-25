@@ -228,15 +228,13 @@ export const QRScannerScreen: React.FC = () => {
 
          
 
-          {/* DEV ONLY: Dummy Scan Button */}
-          {__DEV__ && (
-            <TouchableOpacity 
-              style={{ marginTop: 24, padding: 12, backgroundColor: colors.primary, borderRadius: 8 }}
-              onPress={() => handleProcessQRToken('dummy-qr-token-123')}
-            >
-              <Text style={{ color: colors.textInverse, fontWeight: 'bold' }}>Simulate Scan (DEV)</Text>
-            </TouchableOpacity>
-          )}
+          {/* Dummy Scan Button for testing */}
+          <TouchableOpacity 
+            style={{ marginTop: 24, padding: 12, backgroundColor: colors.primary, borderRadius: 8 }}
+            onPress={() => handleProcessQRToken('dummy-qr-token-123')}
+          >
+            <Text style={{ color: colors.textInverse, fontWeight: 'bold' }}>Simulate Scan (Test)</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
