@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   discountBadgeText: {
     ...typography.badge,
-    color: colors.primaryDark,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   row: {

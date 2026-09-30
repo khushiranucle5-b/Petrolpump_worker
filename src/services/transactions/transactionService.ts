@@ -201,6 +201,7 @@ export class TransactionService {
       const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
       const startOfWeek = startOfToday - 7 * 24 * 60 * 60 * 1000;
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
 
       let filtered = [...this.transactions];
 
@@ -220,6 +221,9 @@ export class TransactionService {
           break;
         case 'THIS_MONTH':
           filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfMonth);
+          break;
+        case 'THIS_YEAR':
+          filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfYear);
           break;
         case 'CUSTOM':
           if (params.startDate) {

@@ -1,5 +1,5 @@
 /**
- * Redemption Success Screen
+ * Transaction Success Screen
  * Displays green success confirmation, digital pump receipt, and quick Scan Next Customer CTA.
  */
 import React, { useEffect } from 'react';
@@ -15,9 +15,9 @@ import { Icon } from '../../components/common/Icon';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { RootStackParamList } from '../../types/navigation';
 
-export const RedemptionSuccessScreen: React.FC = () => {
+export const TransactionSuccessScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'RedemptionSuccess'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'TransactionSuccess'>>();
 
   const { transaction } = route.params;
 
@@ -46,7 +46,7 @@ export const RedemptionSuccessScreen: React.FC = () => {
           <View style={styles.checkCircle}>
             <Icon name="check" size={48} color={colors.textInverse} />
           </View>
-          <Text style={[typography.h1, styles.title]}>Transaction Successful!</Text>
+          <Text style={[typography.h1, styles.title]}>Transaction Successful</Text>
           <Text style={[typography.bodyMedium, styles.subtitle]}>
             Group discount applied and recorded to station ledger.
           </Text>
@@ -265,4 +265,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RedemptionSuccessScreen;
+export default TransactionSuccessScreen;

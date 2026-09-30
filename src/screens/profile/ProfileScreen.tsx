@@ -67,15 +67,11 @@ export const ProfileScreen: React.FC = () => {
         {/* Profile Card Header */}
         <View style={styles.profileHeaderCard}>
           <View style={styles.avatarContainer}>
-            {user?.profilePhotoUrl ? (
-              <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={[typography.h1, styles.avatarText]}>
-                  {getInitials(user?.fullName)}
-                </Text>
-              </View>
-            )}
+            <View style={styles.avatarFallback}>
+              <Text style={[typography.h1, styles.avatarText]}>
+                {getInitials(user?.fullName)}
+              </Text>
+            </View>
             <View style={styles.statusDot}>
               <Icon name="check" size={12} color={colors.textInverse} />
             </View>
@@ -84,13 +80,6 @@ export const ProfileScreen: React.FC = () => {
           <Text style={[typography.h2, styles.workerName]}>
             {user?.fullName || 'Worker Attendant'}
           </Text>
-
-          <View style={styles.badgeRow}>
-            <View style={styles.roleChip}>
-              <Text style={styles.roleChipText}>{user?.role || 'Worker'}</Text>
-            </View>
-            <StatusBadge status={user?.accountStatus || 'active'} size="sm" />
-          </View>
         </View>
 
         {/* Employee & Branch Details Card */}
@@ -152,24 +141,6 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Action Menu Items */}
         <View style={styles.menuCard}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('EditProfile')}
-            style={styles.menuItem}
-          >
-            <View style={styles.menuIconCircle}>
-              <Icon name="edit" size={18} color={colors.primary} />
-            </View>
-            <View style={styles.menuTextCol}>
-              <Text style={[typography.bodyMedium, styles.menuTitle]}>
-                Edit Profile
-              </Text>
-              <Text style={[typography.caption, styles.menuSub]}>
-                Update contact information & photo
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
 
 
 
@@ -189,7 +160,6 @@ export const ProfileScreen: React.FC = () => {
                 Disconnect session safely
               </Text>
             </View>
-            <Icon name="chevron-right" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -272,21 +242,6 @@ const styles = StyleSheet.create({
   workerName: {
     color: colors.textPrimary,
     marginBottom: spacing.xs,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  roleChip: {
-    backgroundColor: colors.primaryLight,
-    paddingVertical: 3,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.round,
-  },
-  roleChipText: {
-    ...typography.badge,
-    color: '#FFFFFF',
   },
   infoCard: {
     backgroundColor: colors.surface,

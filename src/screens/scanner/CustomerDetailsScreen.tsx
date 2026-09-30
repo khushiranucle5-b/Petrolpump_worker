@@ -143,7 +143,7 @@ export const CustomerDetailsScreen: React.FC = () => {
     const discountAmount = Number(((rawVal * discountPercentage) / 100).toFixed(2));
     const finalAmount = Number((rawVal - discountAmount).toFixed(2));
 
-    navigation.navigate('RedemptionConfirmation', {
+    navigation.navigate('TransactionConfirmation', {
       customer,
       qrSessionId,
       discountPercentage,
@@ -325,7 +325,7 @@ export const CustomerDetailsScreen: React.FC = () => {
             <Button
               title="CALCULATE"
               onPress={handleCalculate}
-              variant="primary"
+              variant="accent"
               size="md"
               disabled={!fuelAmountText.trim()}
               leftIcon="percent"

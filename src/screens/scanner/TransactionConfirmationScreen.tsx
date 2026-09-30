@@ -1,5 +1,5 @@
 /**
- * Redemption Confirmation Screen
+ * Transaction Confirmation Screen
  * Final verification before server-side discount execution.
  * Protects against duplicate submissions using unique idempotency keys.
  */
@@ -18,9 +18,9 @@ import { Icon } from '../../components/common/Icon';
 import { TransactionService } from '../../services/transactions/transactionService';
 import { RootStackParamList } from '../../types/navigation';
 
-export const RedemptionConfirmationScreen: React.FC = () => {
+export const TransactionConfirmationScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'RedemptionConfirmation'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'TransactionConfirmation'>>();
   const { user } = useAuth();
 
   const {
@@ -57,7 +57,7 @@ export const RedemptionConfirmationScreen: React.FC = () => {
       });
 
       // Navigate to success screen
-      navigation.replace('RedemptionSuccess', { transaction });
+      navigation.replace('TransactionSuccess', { transaction });
     } catch (err: any) {
       setErrorMessage(
         err.message || 'Transaction could not be completed. Please retry.'
@@ -69,7 +69,7 @@ export const RedemptionConfirmationScreen: React.FC = () => {
 
   const handleCancel = () => {
     Alert.alert(
-      'Cancel Redemption?',
+      'Cancel Transaction?',
       'Are you sure you want to cancel this fuel discount transaction?',
       [
         { text: 'No, Keep Going', style: 'cancel' },
@@ -103,7 +103,7 @@ export const RedemptionConfirmationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header
-        title="Confirm Redemption"
+        title="Confirm Transaction"
         subtitle="Review Details Before Submitting"
         showBack
         onBackPress={() => navigation.goBack()}
@@ -167,7 +167,7 @@ export const RedemptionConfirmationScreen: React.FC = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Button
-            title="CONFIRM & REDEEM"
+            title="CONFIRM "
             onPress={handleRedeem}
             variant="success"
             size="lg"
@@ -260,4 +260,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RedemptionConfirmationScreen;
+export default TransactionConfirmationScreen;

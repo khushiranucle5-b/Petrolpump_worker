@@ -14,8 +14,8 @@ import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import QRScannerScreen from '../screens/scanner/QRScannerScreen';
 import CustomerDetailsScreen from '../screens/scanner/CustomerDetailsScreen';
 import FuelAmountScreen from '../screens/scanner/FuelAmountScreen';
-import RedemptionConfirmationScreen from '../screens/scanner/RedemptionConfirmationScreen';
-import RedemptionSuccessScreen from '../screens/scanner/RedemptionSuccessScreen';
+import TransactionConfirmationScreen from '../screens/scanner/TransactionConfirmationScreen';
+import TransactionSuccessScreen from '../screens/scanner/TransactionSuccessScreen';
 import TransactionDetailsScreen from '../screens/history/TransactionDetailsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
@@ -66,12 +66,12 @@ export const RootNavigator: React.FC = () => {
               component={FuelAmountScreen}
             />
             <Stack.Screen
-              name="RedemptionConfirmation"
-              component={RedemptionConfirmationScreen}
+              name="TransactionConfirmation"
+              component={TransactionConfirmationScreen}
             />
             <Stack.Screen
-              name="RedemptionSuccess"
-              component={RedemptionSuccessScreen}
+              name="TransactionSuccess"
+              component={TransactionSuccessScreen}
               options={{ gestureEnabled: false }}
             />
 

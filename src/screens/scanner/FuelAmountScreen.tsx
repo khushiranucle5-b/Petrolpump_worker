@@ -57,7 +57,7 @@ export const FuelAmountScreen: React.FC = () => {
     }
 
     setErrorMessage('');
-    navigation.navigate('RedemptionConfirmation', {
+    navigation.navigate('TransactionConfirmation', {
       customer,
       qrSessionId,
       discountPercentage,

@@ -112,16 +112,18 @@ export const HistoryScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header
-        title="Redemption History"
+        title="Transaction History"
         variant="dark"
         showBack
         onBackPress={() => (navigation as any).navigate('HomeTab')}
+        rightIcon="user"
+        onRightIconPress={() => navigation.navigate('Profile')}
       />
 
       {/* Search Input Bar */}
       <View style={styles.searchBar}>
         <Input
-          placeholder="Search by customer name, mobile, or Txn ID..."
+          placeholder="Search by customer name or Txn ID..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           leftIcon="search"
@@ -204,7 +206,7 @@ export const HistoryScreen: React.FC = () => {
               message={
                 searchQuery
                   ? `No records matching "${searchQuery}". Try adjusting your search query or filter.`
-                  : `No fuel redemptions recorded for ${filterTabs.find(t => t.type === filterType)?.label.toLowerCase() || 'this period'
+                  : `No transactions recorded for ${filterTabs.find(t => t.type === filterType)?.label.toLowerCase() || 'this period'
                   }.`
               }
               icon="history"

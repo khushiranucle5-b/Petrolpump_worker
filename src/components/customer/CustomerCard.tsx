@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   discountText: {
     ...typography.badge,
-    color: colors.primaryDark,
+    color: colors.textInverse,
     fontWeight: '800',
   },
   groupTags: {

@@ -55,30 +55,40 @@ export const HomeScreen: React.FC = () => {
     totalFinalAmount: 0,
     date: new Date().toISOString(),
   });
-  
-  const [summaryPeriod, setSummaryPeriod] = useState<'TODAY' | 'MONTHLY' | 'YEARLY'>('TODAY');
-  
-  const activeStats = 
-    summaryPeriod === 'TODAY' ? stats : 
-    summaryPeriod === 'MONTHLY' ? monthlyStats : 
-    yearlyStats;
 
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [summaryPeriod, setSummaryPeriod] = useState<'TODAY' | 'MONTHLY' | 'YEARLY'>('TODAY');
+
+  const activeStats =
+    summaryPeriod === 'TODAY' ? stats :
+      summaryPeriod === 'MONTHLY' ? monthlyStats :
+        yearlyStats;
+
+  const [recentTransactions, setRecentTransactions] = useState<{
+    TODAY: Transaction[];
+    MONTHLY: Transaction[];
+    YEARLY: Transaction[];
+  }>({ TODAY: [], MONTHLY: [], YEARLY: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadDashboardData = async () => {
     try {
-      const [todayStats, monthStats, yearStats, txList] = await Promise.all([
+      const [todayStats, monthStats, yearStats, txToday, txMonth, txYear] = await Promise.all([
         TransactionService.getTodaySummary(),
         TransactionService.getMonthlySummary(),
         TransactionService.getYearlySummary(),
         TransactionService.getTransactions({ filterType: 'TODAY', limit: 4 }),
+        TransactionService.getTransactions({ filterType: 'THIS_MONTH', limit: 4 }),
+        TransactionService.getTransactions({ filterType: 'THIS_YEAR', limit: 4 }),
       ]);
       setStats(todayStats);
       setMonthlyStats(monthStats);
       setYearlyStats(yearStats);
-      setRecentTransactions(txList.transactions);
+      setRecentTransactions({
+        TODAY: txToday.transactions,
+        MONTHLY: txMonth.transactions,
+        YEARLY: txYear.transactions,
+      });
     } catch (error) {
       console.warn('Failed to load dashboard data:', error);
     } finally {
@@ -100,6 +110,16 @@ export const HomeScreen: React.FC = () => {
 
   const handleOpenProfile = () => {
     navigation.navigate('Profile');
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'W';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
   };
 
   return (
@@ -131,14 +151,9 @@ export const HomeScreen: React.FC = () => {
               accessibilityHint="Navigates to your profile settings and details"
             >
               <View style={styles.avatarCircle}>
-                {user?.profilePhotoUrl ? (
-                  <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatarImage} />
-                ) : (
-                  <Icon name="user" size={24} color={colors.accent} />
-                )}
-              </View>
-              <View style={styles.avatarBadge}>
-                <Icon name="edit" size={10} color={colors.primaryDark} />
+                <Text style={{ color: colors.accent, fontWeight: '800', fontSize: 20 }}>
+                  {getInitials(user?.fullName)}
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -149,9 +164,6 @@ export const HomeScreen: React.FC = () => {
               </View>
               <Text style={[typography.h2, styles.workerName]} numberOfLines={1}>
                 {user?.fullName || 'Worker Attendant'}
-              </Text>
-              <Text style={[typography.bodySmall, styles.branchName]} numberOfLines={1}>
-                📍 {user?.branchName || 'Downtown City Station'}
               </Text>
             </View>
           </View>
@@ -229,6 +241,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={[typography.h2, styles.statNumberDark, { fontSize: 22 }]} numberOfLines={1} adjustsFontSizeToFit>
               {formatAlwaysKNumber(activeStats.totalFuelAmount)}
             </Text>
+
             <Text style={[typography.caption, styles.statLabelDark]} numberOfLines={1} adjustsFontSizeToFit>
               Fuel Dispensed
             </Text>
@@ -250,7 +263,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Recent Transactions List */}
         <View style={styles.recentSectionHeader}>
-          <Text style={[typography.h3, styles.sectionTitle]}>Recent Redemptions</Text>
+          <Text style={[typography.h3, styles.sectionTitle]}>Transaction History</Text>
           <TouchableOpacity
             onPress={() => (navigation as any).navigate('HistoryTab')}
             style={styles.viewAllBtn}
@@ -263,9 +276,9 @@ export const HomeScreen: React.FC = () => {
 
         {loading ? (
           <Loading message="Loading recent transactions..." />
-        ) : recentTransactions.length > 0 ? (
+        ) : recentTransactions[summaryPeriod].length > 0 ? (
           <View style={styles.txList}>
-            {recentTransactions.map(tx => (
+            {recentTransactions[summaryPeriod].map(tx => (
               <TransactionCard
                 key={tx.id}
                 transaction={tx}
@@ -275,7 +288,7 @@ export const HomeScreen: React.FC = () => {
           </View>
         ) : (
           <EmptyState
-            title="No Redemptions Yet Today"
+            title={`No Transactions Yet ${summaryPeriod === 'TODAY' ? 'Today' : summaryPeriod === 'MONTHLY' ? 'This Month' : 'This Year'}`}
             message="Tap the SCAN button above to scan your first customer QR code and apply their group discount."
             icon="qr-scan"
             actionTitle="SCAN CUSTOMER QR"
@@ -328,19 +341,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     resizeMode: 'cover',
   },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.primaryDark,
-  },
   workerTexts: {
     flex: 1,
   },
@@ -363,10 +363,6 @@ const styles = StyleSheet.create({
   },
   workerName: {
     color: colors.textInverse,
-  },
-  branchName: {
-    color: colors.textInverseSecondary,
-    marginTop: 2,
   },
   scanHeroContainer: {
     paddingHorizontal: spacing.lg,

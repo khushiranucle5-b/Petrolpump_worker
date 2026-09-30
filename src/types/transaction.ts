@@ -4,7 +4,7 @@
 
 export type TransactionStatus = 'COMPLETED' | 'PENDING' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
 
-export type HistoryFilterType = 'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM' | 'CANCELLED_ONLY';
+export type HistoryFilterType = 'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'THIS_YEAR' | 'CUSTOM' | 'CANCELLED_ONLY';
 
 export interface Transaction {
   id: string;

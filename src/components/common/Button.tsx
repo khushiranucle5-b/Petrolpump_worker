@@ -38,7 +38,7 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
+  variant = 'accent',
   size = 'md',
   disabled = false,
   loading = false,
@@ -78,7 +78,7 @@ export const Button: React.FC<ButtonProps> = ({
         base = { ...base, ...shadows.glowAmber };
         break;
       case 'secondary':
-        base.backgroundColor = colors.primaryLight;
+        base.backgroundColor = colors.accent;
         break;
       case 'outline':
         base.backgroundColor = 'transparent';
@@ -96,7 +96,7 @@ export const Button: React.FC<ButtonProps> = ({
         break;
       case 'primary':
       default:
-        base.backgroundColor = colors.primary;
+        base.backgroundColor = colors.accent;
         base = { ...base, ...shadows.md };
         break;
     }
@@ -117,7 +117,7 @@ export const Button: React.FC<ButtonProps> = ({
   const getTextColor = (): string => {
     if (variant === 'outline') return colors.primary;
     if (variant === 'ghost') return colors.primary;
-    if (variant === 'accent') return colors.primaryDark;
+    if (variant === 'accent') return colors.textInverse;
     return colors.textInverse;
   };
 

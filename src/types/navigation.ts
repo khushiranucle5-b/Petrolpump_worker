@@ -39,7 +39,7 @@ export type RootStackParamList = {
     qrSessionId: string;
     discountPercentage: number;
   };
-  RedemptionConfirmation: {
+  TransactionConfirmation: {
     customer: CustomerProfile;
     qrSessionId: string;
     discountPercentage: number;
@@ -47,7 +47,7 @@ export type RootStackParamList = {
     discountAmount: number;
     finalAmount: number;
   };
-  RedemptionSuccess: {
+  TransactionSuccess: {
     transaction: Transaction;
   };
 

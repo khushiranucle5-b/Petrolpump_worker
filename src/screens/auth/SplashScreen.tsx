@@ -47,7 +47,7 @@ export const SplashScreen: React.FC = () => {
           <Text style={styles.badgeText}>WORKER PORTAL</Text>
         </View>
         <Text style={[typography.bodyMedium, styles.subtitle]}>
-          Secure Discount & Fuel Redemption System
+          Secure Discount & Fuel System
         </Text>
       </View>
 
