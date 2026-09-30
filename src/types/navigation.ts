@@ -50,6 +50,17 @@ export type RootStackParamList = {
   TransactionSuccess: {
     transaction: Transaction;
   };
+  RedemptionConfirmation: {
+    customer: CustomerProfile;
+    qrSessionId: string;
+    discountPercentage: number;
+    fuelAmount: number;
+    discountAmount: number;
+    finalAmount: number;
+  };
+  RedemptionSuccess: {
+    transaction: Transaction;
+  };
 
   // Transaction History Flow
   TransactionDetails: {
