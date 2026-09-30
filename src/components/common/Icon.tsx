@@ -39,6 +39,7 @@ import {
   SquarePen,
   Building2,
   Award,
+  IndianRupee,
   LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
@@ -77,7 +78,8 @@ export type IconName =
   | 'percent'
   | 'edit'
   | 'building'
-  | 'badge';
+  | 'badge'
+  | 'rupee';
 
 interface IconProps {
   name: IconName;
@@ -122,6 +124,7 @@ const ICON_MAP: Record<IconName, LucideIcon> = {
   edit: SquarePen,
   building: Building2,
   badge: Award,
+  rupee: IndianRupee,
 };
 
 export const Icon: React.FC<IconProps> = ({

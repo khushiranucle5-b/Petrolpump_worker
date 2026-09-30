@@ -1,4 +1,4 @@
-package com.petrolpumpapp
+package com.petrolpumpworkerapp
 
 import android.app.Application
 import com.facebook.react.PackageList

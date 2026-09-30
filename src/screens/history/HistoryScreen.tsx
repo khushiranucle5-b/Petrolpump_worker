@@ -32,7 +32,7 @@ import { RootStackParamList } from '../../types/navigation';
 export const HistoryScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const [filterType, setFilterType] = useState<HistoryFilterType>('TODAY');
+  const [filterType, setFilterType] = useState<HistoryFilterType>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [page, setPage] = useState<number>(1);
@@ -45,6 +45,7 @@ export const HistoryScreen: React.FC = () => {
   const [error, setError] = useState<string>('');
 
   const filterTabs: { type: HistoryFilterType; label: string }[] = [
+    { type: 'ALL', label: 'All' },
     { type: 'TODAY', label: 'Today' },
     { type: 'YESTERDAY', label: 'Yesterday' },
     { type: 'THIS_WEEK', label: 'This Week' },
@@ -110,7 +111,12 @@ export const HistoryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Redemption History" variant="dark" />
+      <Header
+        title="Redemption History"
+        variant="dark"
+        showBack
+        onBackPress={() => (navigation as any).navigate('HomeTab')}
+      />
 
       {/* Search Input Bar */}
       <View style={styles.searchBar}>
@@ -178,6 +184,7 @@ export const HistoryScreen: React.FC = () => {
       ) : (
         <FlatList
           data={transactions}
+          extraData={transactions}
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
@@ -247,11 +254,11 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: colors.primary,
     fontWeight: '600',
   },
   filterChipTextActive: {
-    color: colors.primaryDark,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   searchBar: {

@@ -48,6 +48,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       case 'SUSPENDED':
       case 'REJECTED':
       case 'BLOCKED':
+      case 'CANCELLED':
         return { bg: colors.dangerLight, text: colors.dangerDark, border: colors.danger };
       case 'DISCOUNT':
         return { bg: colors.accentSubtle, text: colors.accentDark, border: colors.accent };
@@ -71,6 +72,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         return 'Active';
       case 'SUSPENDED':
         return 'Suspended';
+      case 'CANCELLED':
+        return 'Cancelled';
       default:
         return status;
     }

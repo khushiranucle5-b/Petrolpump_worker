@@ -95,6 +95,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     ...shadows.sm,
   },
+  cancelledCard: {
+    opacity: 0.6,
+  },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

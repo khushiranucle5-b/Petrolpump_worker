@@ -17,14 +17,56 @@ export const formatCurrency = (amount: number | string | undefined | null): stri
 };
 
 /**
- * Format currency without decimals for compact displays
+ * Format currency without decimals for compact displays.
+ * Numbers >= 1000 are formatted with a 'k' suffix (e.g. ₹12.34k)
  */
 export const formatCompactCurrency = (amount: number | string | undefined | null): string => {
   if (amount === undefined || amount === null || isNaN(Number(amount))) {
     return '₹0';
   }
   const num = Number(amount);
+  if (Math.abs(num) >= 1000) {
+    return '₹' + parseFloat((num / 1000).toFixed(2)) + 'k';
+  }
   return '₹' + Math.round(num).toLocaleString('en-IN');
+};
+
+/**
+ * Format currency to always have a 'k' suffix, divided by 1000 (e.g. ₹0.5k)
+ */
+export const formatAlwaysKCurrency = (amount: number | string | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return '₹0k';
+  }
+  const num = Number(amount);
+  if (num === 0) return '₹0k';
+  return '₹' + parseFloat((num / 1000).toFixed(2)) + 'k';
+};
+
+/**
+ * Format number to always have a 'k' suffix, divided by 1000 (e.g. 0.5k)
+ */
+export const formatAlwaysKNumber = (amount: number | string | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return '0k';
+  }
+  const num = Number(amount);
+  if (num === 0) return '0k';
+  return parseFloat((num / 1000).toFixed(2)) + 'k';
+};
+
+/**
+ * Format number with 'k' suffix if >= 1000 (e.g. 12.34k)
+ */
+export const formatKNumber = (amount: number | string | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return '0';
+  }
+  const num = Number(amount);
+  if (Math.abs(num) >= 1000) {
+    return parseFloat((num / 1000).toFixed(2)) + 'k';
+  }
+  return Math.round(num).toLocaleString('en-IN');
 };
 
 /**

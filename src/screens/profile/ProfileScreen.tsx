@@ -111,20 +111,7 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconCol}>
-              <Icon name="building" size={18} color={colors.primary} />
-            </View>
-            <View style={styles.infoTextCol}>
-              <Text style={[typography.caption, styles.infoLabel]}>PETROL PUMP / BRANCH</Text>
-              <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {user?.petrolPumpName || 'Downtown City Station'}
-              </Text>
-              <Text style={[typography.caption, styles.infoSubValue]}>
-                {user?.branchName || 'Branch #104 (MG Road)'}
-              </Text>
-            </View>
-          </View>
+
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconCol}>

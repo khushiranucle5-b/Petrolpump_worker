@@ -111,7 +111,7 @@ export const RedemptionSuccessScreen: React.FC = () => {
 
           <View style={[styles.amountRow, styles.finalAmountRow]}>
             <View>
-              <Text style={[typography.label, styles.finalLabel]}>FINAL AMOUNT COLLECTED</Text>
+              <Text style={[typography.label, styles.finalLabel]}>FINAL AMOUNT</Text>
               <Text style={[typography.caption, styles.finalSub]}>Cash / Card / UPI</Text>
             </View>
             <Text style={[typography.h2, styles.finalValue]}>

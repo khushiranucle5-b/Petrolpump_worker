@@ -76,7 +76,25 @@ export const RedemptionConfirmationScreen: React.FC = () => {
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => navigation.navigate('MainTabs'),
+          onPress: async () => {
+            if (loading) return;
+            setLoading(true);
+            try {
+              await TransactionService.recordCancelled({
+                qrSessionId,
+                customerId: customer.id,
+                fuelAmount,
+                workerId: user?.workerId || 'EMP-7842',
+                petrolPumpId: user?.petrolPumpId || 'pp-01',
+                idempotencyKey: idempotencyKeyRef.current,
+              });
+            } catch (err: any) {
+              console.warn('Failed to record cancellation', err);
+            } finally {
+              setLoading(false);
+              navigation.navigate('MainTabs');
+            }
+          },
         },
       ]
     );

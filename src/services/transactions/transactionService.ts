@@ -100,7 +100,7 @@ export class TransactionService {
 
       // Prepend to transaction list
       this.transactions.unshift(newTx);
-      
+
       // Save statically
       await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
 
@@ -108,6 +108,65 @@ export class TransactionService {
     }
 
     throw new Error(response.message || 'Failed to complete fuel redemption.');
+  }
+
+  /**
+   * Record a cancelled transaction before redemption
+   */
+  static async recordCancelled(payload: RedeemTransactionRequest): Promise<Transaction> {
+    const response = await apiClient.post<{ message: string; transaction: Transaction }>(
+      '/transactions/record-cancelled',
+      payload
+    );
+
+    if (response.success && response.data?.transaction) {
+      return response.data.transaction;
+    }
+
+    if (CONFIG.USE_MOCK_FALLBACK) {
+      await this.initMockStorage();
+      await sleep(CONFIG.MOCK_DELAY_MS);
+
+      const customer = MOCK_CUSTOMERS.find(c => c.id === payload.customerId || c.customerId === payload.customerId) || MOCK_CUSTOMERS[0];
+      const discountPercentage = customer.group.discountPercentage;
+      const fuelAmount = Number(payload.fuelAmount);
+      const discountAmount = Number(((fuelAmount * discountPercentage) / 100).toFixed(2));
+      const finalAmount = Number((fuelAmount - discountAmount).toFixed(2));
+
+      const newTx: Transaction = {
+        id: 'tx-' + Math.floor(100000 + Math.random() * 900000),
+        transactionId: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
+        customerId: customer.id,
+        customerName: customer.fullName,
+        customerMobile: customer.mobileNumber,
+        customerPhotoUrl: customer.profilePhotoUrl,
+        groupId: customer.group.groupId,
+        groupName: customer.group.groupName,
+        groupType: customer.group.groupType,
+        fuelAmount,
+        discountPercentage,
+        discountAmount,
+        finalAmount,
+        workerId: payload.workerId,
+        workerName: 'Vikram Singh',
+        petrolPumpId: payload.petrolPumpId,
+        petrolPumpName: 'Downtown City Station',
+        branchName: 'Branch #104 (MG Road)',
+        status: 'CANCELLED',
+        createdAt: new Date().toISOString(),
+        notes: `Cancelled before redemption`,
+      };
+
+      // Mark the QR session as used
+      QRService.markTokenUsed(payload.qrSessionId);
+
+      this.transactions.unshift(newTx);
+      await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
+
+      return newTx;
+    }
+
+    throw new Error(response.message || 'Failed to record cancelled transaction.');
   }
 
   /**
@@ -171,6 +230,9 @@ export class TransactionService {
             const end = new Date(params.endDate).getTime();
             filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() <= end);
           }
+          break;
+        case 'CANCELLED_ONLY':
+          filtered = filtered.filter(tx => tx.status === 'CANCELLED');
           break;
       }
 
@@ -258,5 +320,120 @@ export class TransactionService {
     }
 
     throw new Error(response.message || 'Failed to fetch today stats.');
+  }
+
+  /**
+   * Get This Month's Summary Metrics
+   */
+  static async getMonthlySummary(): Promise<TodayStats> {
+    const response = await apiClient.get<TodayStats>('/transactions/monthly-summary');
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    if (CONFIG.USE_MOCK_FALLBACK) {
+      await this.initMockStorage();
+      await sleep(250);
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+      const monthTxs = this.transactions.filter(
+        tx => new Date(tx.createdAt).getTime() >= startOfMonth && tx.status === 'COMPLETED'
+      );
+
+      const totalFuelAmount = monthTxs.reduce((sum, tx) => sum + tx.fuelAmount, 0);
+      const totalDiscountAmount = monthTxs.reduce((sum, tx) => sum + tx.discountAmount, 0);
+      const totalFinalAmount = monthTxs.reduce((sum, tx) => sum + tx.finalAmount, 0);
+
+      return {
+        transactionCount: monthTxs.length,
+        totalFuelAmount,
+        totalDiscountAmount,
+        totalFinalAmount,
+        date: new Date().toISOString(),
+      };
+    }
+
+    throw new Error(response.message || 'Failed to fetch monthly stats.');
+  }
+
+  /**
+   * Get This Year's Summary Metrics
+   */
+  static async getYearlySummary(): Promise<TodayStats> {
+    const response = await apiClient.get<TodayStats>('/transactions/yearly-summary');
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    if (CONFIG.USE_MOCK_FALLBACK) {
+      await this.initMockStorage();
+      await sleep(250);
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+      const yearTxs = this.transactions.filter(
+        tx => new Date(tx.createdAt).getTime() >= startOfYear && tx.status === 'COMPLETED'
+      );
+
+      const totalFuelAmount = yearTxs.reduce((sum, tx) => sum + tx.fuelAmount, 0);
+      const totalDiscountAmount = yearTxs.reduce((sum, tx) => sum + tx.discountAmount, 0);
+      const totalFinalAmount = yearTxs.reduce((sum, tx) => sum + tx.finalAmount, 0);
+
+      return {
+        transactionCount: yearTxs.length,
+        totalFuelAmount,
+        totalDiscountAmount,
+        totalFinalAmount,
+        date: new Date().toISOString(),
+      };
+    }
+
+    throw new Error(response.message || 'Failed to fetch yearly stats.');
+  }
+
+  /**
+   * Cancel a fuel transaction
+   */
+  static async cancelTransaction(transactionId: string): Promise<Transaction> {
+    const response = await apiClient.post<{ message: string; transaction: Transaction }>(
+      `/transactions/${transactionId}/cancel`,
+      {}
+    );
+
+    if (response.success && response.data?.transaction) {
+      return response.data.transaction;
+    }
+
+    if (CONFIG.USE_MOCK_FALLBACK) {
+      await this.initMockStorage();
+      await sleep(CONFIG.MOCK_DELAY_MS);
+
+      const idx = this.transactions.findIndex(
+        t => t.id === transactionId || t.transactionId === transactionId
+      );
+
+      if (idx !== -1) {
+        if (this.transactions[idx].status !== 'COMPLETED') {
+          throw new Error('Only completed transactions can be cancelled.');
+        }
+
+        const updated = {
+          ...this.transactions[idx],
+          status: 'CANCELLED' as const,
+        };
+
+        this.transactions[idx] = updated;
+        await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
+
+        return updated;
+      }
+
+      throw new Error('Transaction record not found.');
+    }
+
+    throw new Error(response.message || 'Failed to cancel transaction.');
   }
 }

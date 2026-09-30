@@ -21,7 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius, shadows } from '../../theme/spacing';
-import { formatCompactCurrency } from '../../utils/formatters';
+import { formatCompactCurrency, formatKNumber, formatAlwaysKCurrency, formatAlwaysKNumber } from '../../utils/formatters';
 import { TransactionService } from '../../services/transactions/transactionService';
 import { Transaction, TodayStats } from '../../types/transaction';
 import { Icon } from '../../components/common/Icon';
@@ -41,17 +41,43 @@ export const HomeScreen: React.FC = () => {
     totalFinalAmount: 0,
     date: new Date().toISOString(),
   });
+  const [monthlyStats, setMonthlyStats] = useState<TodayStats>({
+    transactionCount: 0,
+    totalFuelAmount: 0,
+    totalDiscountAmount: 0,
+    totalFinalAmount: 0,
+    date: new Date().toISOString(),
+  });
+  const [yearlyStats, setYearlyStats] = useState<TodayStats>({
+    transactionCount: 0,
+    totalFuelAmount: 0,
+    totalDiscountAmount: 0,
+    totalFinalAmount: 0,
+    date: new Date().toISOString(),
+  });
+  
+  const [summaryPeriod, setSummaryPeriod] = useState<'TODAY' | 'MONTHLY' | 'YEARLY'>('TODAY');
+  
+  const activeStats = 
+    summaryPeriod === 'TODAY' ? stats : 
+    summaryPeriod === 'MONTHLY' ? monthlyStats : 
+    yearlyStats;
+
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadDashboardData = async () => {
     try {
-      const [todayStats, txList] = await Promise.all([
+      const [todayStats, monthStats, yearStats, txList] = await Promise.all([
         TransactionService.getTodaySummary(),
+        TransactionService.getMonthlySummary(),
+        TransactionService.getYearlySummary(),
         TransactionService.getTransactions({ filterType: 'TODAY', limit: 4 }),
       ]);
       setStats(todayStats);
+      setMonthlyStats(monthStats);
+      setYearlyStats(yearStats);
       setRecentTransactions(txList.transactions);
     } catch (error) {
       console.warn('Failed to load dashboard data:', error);
@@ -148,7 +174,7 @@ export const HomeScreen: React.FC = () => {
                 SCAN CUSTOMER QR
               </Text>
               <Text style={[typography.bodySmall, styles.scanHeroSubtitle]}>
-                Validate 60s dynamic code & calculate group discount
+                Scan Qr code calculate group discount
               </Text>
             </View>
             <View style={styles.scanHeroArrow}>
@@ -157,23 +183,41 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Today's Stats Cards Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[typography.h3, styles.sectionTitle]}>Today's Summary</Text>
-          <Text style={[typography.caption, styles.sectionDate]}>Shift Overview</Text>
+        {/* Summary Toggle Tabs */}
+        <View style={styles.tabContainer}>
+          {(['TODAY', 'MONTHLY', 'YEARLY'] as const).map(period => {
+            const isActive = summaryPeriod === period;
+            return (
+              <TouchableOpacity
+                key={period}
+                onPress={() => setSummaryPeriod(period)}
+                style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    isActive && styles.tabTextActive,
+                  ]}
+                >
+                  {period === 'TODAY' ? 'Today' : period === 'MONTHLY' ? 'This Month' : 'This Year'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
+        {/* Selected Summary Stats Grid */}
         <View style={styles.statsGrid}>
           {/* Transactions Count */}
           <View style={[styles.statCard, styles.statCardNavy]}>
             <View style={styles.statIconBadge}>
               <Icon name="history" size={16} color={colors.cyan} />
             </View>
-            <Text style={[typography.amountLarge, styles.statNumber]}>
-              {stats.transactionCount}
+            <Text style={[typography.h2, styles.statNumber, { fontSize: 22 }]} numberOfLines={1} adjustsFontSizeToFit>
+              {formatKNumber(activeStats.transactionCount)}
             </Text>
-            <Text style={[typography.caption, styles.statLabel]}>
-              Transactions
+            <Text style={[typography.caption, styles.statLabel]} numberOfLines={1} adjustsFontSizeToFit>
+              {/* Transactions */} Scan Count
             </Text>
           </View>
 
@@ -182,10 +226,10 @@ export const HomeScreen: React.FC = () => {
             <View style={[styles.statIconBadge, { backgroundColor: colors.borderLight }]}>
               <Icon name="fuel" size={16} color={colors.primary} />
             </View>
-            <Text style={[typography.amountLarge, styles.statNumberDark]}>
-              {formatCompactCurrency(stats.totalFuelAmount)}
+            <Text style={[typography.h2, styles.statNumberDark, { fontSize: 22 }]} numberOfLines={1} adjustsFontSizeToFit>
+              {formatAlwaysKNumber(activeStats.totalFuelAmount)}
             </Text>
-            <Text style={[typography.caption, styles.statLabelDark]}>
+            <Text style={[typography.caption, styles.statLabelDark]} numberOfLines={1} adjustsFontSizeToFit>
               Fuel Dispensed
             </Text>
           </View>
@@ -193,12 +237,12 @@ export const HomeScreen: React.FC = () => {
           {/* Total Discount Amount */}
           <View style={[styles.statCard, styles.statCardGold]}>
             <View style={[styles.statIconBadge, { backgroundColor: colors.accentLight }]}>
-              <Icon name="percent" size={16} color={colors.accentDark} />
+              <Icon name="rupee" size={16} color={colors.accentDark} />
             </View>
-            <Text style={[typography.amountLarge, styles.statNumberGold]}>
-              {formatCompactCurrency(stats.totalDiscountAmount)}
+            <Text style={[typography.h2, styles.statNumberGold, { fontSize: 22 }]} numberOfLines={1} adjustsFontSizeToFit>
+              {formatCompactCurrency(activeStats.totalDiscountAmount)}
             </Text>
-            <Text style={[typography.caption, styles.statLabelGold]}>
+            <Text style={[typography.caption, styles.statLabelGold]} numberOfLines={1} adjustsFontSizeToFit>
               Discounts Given
             </Text>
           </View>
@@ -381,6 +425,34 @@ const styles = StyleSheet.create({
   },
   sectionDate: {
     color: colors.textSecondary,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: borderRadius.md,
+    padding: 4,
+    marginBottom: spacing.md,
+    marginTop: spacing.md,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: borderRadius.sm,
+  },
+  tabButtonActive: {
+    backgroundColor: colors.surface,
+    ...shadows.sm,
+  },
+  tabText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: colors.primaryDark,
+    fontWeight: '800',
   },
   statsGrid: {
     flexDirection: 'row',

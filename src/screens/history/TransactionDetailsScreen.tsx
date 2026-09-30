@@ -2,8 +2,8 @@
  * Transaction Details Screen
  * Complete breakdown of the recorded fuel redemption receipt.
  */
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
@@ -16,11 +16,15 @@ import { Icon } from '../../components/common/Icon';
 import { Button } from '../../components/common/Button';
 import { RootStackParamList } from '../../types/navigation';
 
+import { TransactionService } from '../../services/transactions/transactionService';
+import { Transaction } from '../../types/transaction';
+
 export const TransactionDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'TransactionDetails'>>();
 
-  const { transaction } = route.params;
+  const { transaction: initialTransaction } = route.params;
+  const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
 
   return (
     <View style={styles.container}>
@@ -95,42 +99,7 @@ export const TransactionDetailsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Station & Worker Information Card */}
-        <View style={styles.card}>
-          <Text style={[typography.h4, styles.cardTitle]}>
-            Dispenser & Station Verification
-          </Text>
 
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Station</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.petrolPumpName}
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Branch / Terminal</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.branchName}
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Attendant</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.workerName} ({transaction.workerId})
-            </Text>
-          </View>
-
-          {transaction.notes ? (
-            <View style={styles.row}>
-              <Text style={[typography.bodySmall, styles.label]}>Nozzle Notes</Text>
-              <Text style={[typography.bodyMedium, styles.value]}>
-                {transaction.notes}
-              </Text>
-            </View>
-          ) : null}
-        </View>
 
         {/* Financial Breakdown Card */}
         <View style={styles.card}>
@@ -159,7 +128,7 @@ export const TransactionDetailsScreen: React.FC = () => {
           <View style={[styles.row, styles.finalRow]}>
             <View>
               <Text style={[typography.label, styles.finalTitle]}>
-                FINAL AMOUNT COLLECTED
+                FINAL AMOUNT 
               </Text>
               <Text style={[typography.caption, styles.finalSub]}>
                 Verified & Settled
