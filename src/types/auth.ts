@@ -24,6 +24,7 @@ export interface WorkerUser {
 export interface LoginCredentials {
   identifier: string; // Email or mobile
   password: string;
+  otp?: string;
 }
 
 export interface RegisterPayload {

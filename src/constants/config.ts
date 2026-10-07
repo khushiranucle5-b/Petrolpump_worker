@@ -2,18 +2,23 @@
  * Global Application Configuration
  * Configurable for development, staging, and production environments
  */
+import { Platform } from 'react-native';
+
+export const API_URL = 'http://127.0.0.1:5000/api/v1';
+
 export const CONFIG = {
   APP_NAME: 'PetrolPump Worker',
   APP_VERSION: '1.0.0',
   
   // API URL - Changeable via environment or build variant
-  API_BASE_URL: process.env.API_BASE_URL || 'https://api.petrolpump.example.com/api/v1',
+  API_BASE_URL: process.env.API_BASE_URL || 'http://127.0.0.1:5000/api/v1/worker-app',
   
+
   // Request timeout in ms
   API_TIMEOUT: 15000,
   
   // Feature flag to enable isolated mock service fallback when backend is unreachable or offline
-  USE_MOCK_FALLBACK: true,
+  USE_MOCK_FALLBACK: false,
   
   // Mock delay in ms for realistic loading UX
   MOCK_DELAY_MS: 600,

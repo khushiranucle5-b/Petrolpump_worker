@@ -25,6 +25,26 @@ export const TransactionDetailsScreen: React.FC = () => {
 
   const { transaction: initialTransaction } = route.params;
   const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await TransactionService.getTransactionDetails(initialTransaction.id);
+        setTransaction(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load transaction details.');
+        Alert.alert('Error', err.message || 'Failed to load transaction details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDetails();
+  }, [initialTransaction.id]);
 
   return (
     <View style={styles.container}>
@@ -35,6 +55,13 @@ export const TransactionDetailsScreen: React.FC = () => {
         onBackPress={() => navigation.goBack()}
         variant="dark"
       />
+
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Top Header Card */}
@@ -142,6 +169,7 @@ export const TransactionDetailsScreen: React.FC = () => {
 
        
       </ScrollView>
+      )}
     </View>
   );
 };
@@ -150,6 +178,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     padding: spacing.lg,

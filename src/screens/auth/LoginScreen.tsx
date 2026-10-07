@@ -16,6 +16,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
+import { AuthService } from '../../services/auth/authService';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius, shadows } from '../../theme/spacing';
@@ -29,7 +30,7 @@ export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { login } = useAuth();
 
-  const [mobileNumber, setMobileNumber] = useState('9876543210');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export const LoginScreen: React.FC = () => {
   const [mobileError, setMobileError] = useState('');
   const [otpError, setOtpError] = useState('');
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     setErrorMessage('');
     setMobileError('');
     if (!mobileNumber.trim() || mobileNumber.trim().length !== 10) {
@@ -45,18 +46,22 @@ export const LoginScreen: React.FC = () => {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await AuthService.requestOtp(mobileNumber.trim());
+      if (res.mockOtpForTesting) {
+        Alert.alert('Test OTP', `Use OTP: ${res.mockOtpForTesting}`);
+      }
       setOtpSent(true);
-    }, 1000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to send OTP.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtpAndLogin = async () => {
-    setErrorMessage('');
-    setOtpError('');
-    
-    if (!otp.trim() || otp.length < 4) {
-      setOtpError('Please enter a valid OTP');
+    if (!otp || otp.length < 4) {
+      Alert.alert('Invalid Input', 'Please enter a valid OTP.');
       return;
     }
 
@@ -64,8 +69,11 @@ export const LoginScreen: React.FC = () => {
     try {
       const user = await login({
         identifier: mobileNumber.trim(),
-        password: 'password123',
+        password: '',
+        otp: otp.trim()
       });
+
+      Alert.alert('Success', 'Login Successful!');
 
       if (user.accountStatus === 'pending_approval') {
         navigation.replace('PendingApproval', {
@@ -74,9 +82,19 @@ export const LoginScreen: React.FC = () => {
         });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'OTP Verification failed. Please check credentials.');
+      Alert.alert('Login Failed', err.message);
+      setOtp('');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await AuthService.requestOtp(mobileNumber.trim());
+      Alert.alert('Sent!', 'A new OTP has been sent to your mobile number.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -164,6 +182,11 @@ export const LoginScreen: React.FC = () => {
                 loading={loading}
                 style={styles.loginBtn}
               />
+              <TouchableOpacity onPress={handleResendOtp} style={{ marginTop: 25 }}>
+                <Text style={{ color: '#007BFF', textAlign: 'center', fontWeight: '600' }}>
+                  Didn't receive the code? Resend OTP
+                </Text>
+              </TouchableOpacity>
             </>
           )}
 

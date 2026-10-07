@@ -25,17 +25,21 @@ export class QRService {
   static async validateQRToken(payload: QRValidateRequest): Promise<QRValidateResponse> {
     const rawToken = payload.qrToken.trim();
 
+    console.log('[QR DEBUG] Scanned raw QR Token:', rawToken);
+
     if (!rawToken) {
       throw this.createQRError('QR_INVALID', 'The scanned QR code is empty or unreadable.');
     }
 
     // Call backend endpoint
-    const response = await apiClient.post<QRValidateResponse>('/qr/validate', {
+    const response = await apiClient.post<QRValidateResponse>('/qr/scan', {
       qrToken: rawToken,
       workerId: payload.workerId,
       petrolPumpId: payload.petrolPumpId,
       scannedAt: payload.scannedAt || new Date().toISOString(),
     });
+
+    console.log('[QR DEBUG] Backend Response for /qr/scan:', JSON.stringify(response, null, 2));
 
     if (response.success && response.data) {
       return response.data;
@@ -44,12 +48,12 @@ export class QRService {
     // Isolated Mock Validation Fallback
     if (CONFIG.USE_MOCK_FALLBACK) {
       await sleep(CONFIG.MOCK_DELAY_MS);
-
       return this.mockValidateQR(rawToken);
     }
 
     // Translate backend error
     const errCode = (response.error?.code as QRErrorCode) || 'SERVER_ERROR';
+    console.log('[QR DEBUG] Translated Error Code:', errCode);
     throw this.createQRError(errCode, response.message || 'QR Validation failed');
   }
 

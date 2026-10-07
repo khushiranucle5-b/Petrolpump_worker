@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
@@ -28,10 +28,34 @@ import { RootStackParamList } from '../../types/navigation';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
 
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // Fetch latest profile from backend API when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      const loadProfile = async () => {
+        setLoadingProfile(true);
+        try {
+          await refreshProfile();
+        } catch (error) {
+          console.log('Failed to refresh profile', error);
+        } finally {
+          if (isActive) setLoadingProfile(false);
+        }
+      };
+
+      loadProfile();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -78,7 +102,7 @@ export const ProfileScreen: React.FC = () => {
           </View>
 
           <Text style={[typography.h2, styles.workerName]}>
-            {user?.fullName || 'Worker Attendant'}
+            {user?.fullName || 'N/A'}
           </Text>
         </View>
 
@@ -95,7 +119,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoTextCol}>
               <Text style={[typography.caption, styles.infoLabel]}>EMPLOYEE / WORKER ID</Text>
               <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {user?.workerId || 'EMP-7842'}
+                {user?.workerId || (user as any)?.id || 'N/A'}
               </Text>
             </View>
           </View>
@@ -109,7 +133,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoTextCol}>
               <Text style={[typography.caption, styles.infoLabel]}>MOBILE NUMBER</Text>
               <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {user?.mobileNumber || '+91 98765 43210'}
+                {user?.mobileNumber || (user as any)?.mobile || 'N/A'}
               </Text>
             </View>
           </View>
@@ -121,7 +145,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoTextCol}>
               <Text style={[typography.caption, styles.infoLabel]}>EMAIL ADDRESS</Text>
               <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {user?.email || 'worker@petrolpump.com'}
+                {user?.email || 'N/A'}
               </Text>
             </View>
           </View>
@@ -133,10 +157,24 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoTextCol}>
               <Text style={[typography.caption, styles.infoLabel]}>JOINING DATE</Text>
               <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {formatDate(user?.joiningDate)}
+                {formatDate(user?.joiningDate || (user as any)?.joinedAt)}
               </Text>
             </View>
           </View>
+
+          {(user as any)?.station?.name && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoIconCol}>
+                <Icon name="map-pin" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTextCol}>
+                <Text style={[typography.caption, styles.infoLabel]}>STATION / BRANCH</Text>
+                <Text style={[typography.bodyMedium, styles.infoValue]}>
+                  {(user as any).station.name}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Action Menu Items */}

@@ -60,6 +60,7 @@ export class ApiClient {
     const reqHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
       ...headers,
     };
 

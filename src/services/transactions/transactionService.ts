@@ -52,7 +52,7 @@ export class TransactionService {
       throw new Error('This redemption is currently being processed or has already been submitted.');
     }
 
-    const response = await apiClient.post<RedeemTransactionResponse>('/transactions/redeem', payload);
+    const response = await apiClient.post<RedeemTransactionResponse>('/transactions/submit', payload);
 
     if (response.success && response.data?.transaction) {
       this.processedIdempotencyKeys.add(payload.idempotencyKey);
@@ -114,15 +114,7 @@ export class TransactionService {
    * Record a cancelled transaction before redemption
    */
   static async recordCancelled(payload: RedeemTransactionRequest): Promise<Transaction> {
-    const response = await apiClient.post<{ message: string; transaction: Transaction }>(
-      '/transactions/record-cancelled',
-      payload
-    );
-
-    if (response.success && response.data?.transaction) {
-      return response.data.transaction;
-    }
-
+    // There is no /transactions/record-cancelled in backend, so we mock it.
     if (CONFIG.USE_MOCK_FALLBACK) {
       await this.initMockStorage();
       await sleep(CONFIG.MOCK_DELAY_MS);
@@ -166,7 +158,7 @@ export class TransactionService {
       return newTx;
     }
 
-    throw new Error(response.message || 'Failed to record cancelled transaction.');
+    throw new Error('Failed to record cancelled transaction: Endpoint not implemented on backend.');
   }
 
   /**
@@ -178,17 +170,35 @@ export class TransactionService {
     page: number;
     hasMore: boolean;
   }> {
+    const queryParams = new URLSearchParams();
+    if (params.filterType) queryParams.append('filterType', params.filterType);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    
     const response = await apiClient.get<{
       transactions: Transaction[];
-      total: number;
-      page: number;
-      hasMore: boolean;
-    }>('/transactions', {
+    }>(`/transactions?${queryParams.toString()}`, {
       requiresAuth: true,
     });
 
     if (response.success && response.data) {
-      return response.data;
+      const data = response.data.transactions || [];
+      return {
+        transactions: data.map((tx: any) => ({
+          ...tx,
+          transactionId: tx.transactionId || tx.id,
+          fuelAmount: tx.amount || tx.fuelAmount || 0,
+          customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
+          customerMobile: tx.customerMobile || tx.customer?.mobile || 'N/A',
+          groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
+          groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
+          discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
+          discountAmount: tx.discountAmount || 0,
+          finalAmount: tx.finalAmount || 0,
+        })),
+        total: data.length,
+        page: 1,
+        hasMore: false,
+      };
     }
 
     // Isolated Mock Filtering & Pagination Fallback
@@ -273,10 +283,22 @@ export class TransactionService {
    * Get single transaction details
    */
   static async getTransactionDetails(id: string): Promise<Transaction> {
-    const response = await apiClient.get<Transaction>(`/transactions/${id}`);
+    const response = await apiClient.get<any>(`/transactions/details/${id}`);
 
     if (response.success && response.data) {
-      return response.data;
+      const tx = response.data;
+      return {
+        ...tx,
+        transactionId: tx.transactionId || tx.id,
+        fuelAmount: tx.amount || tx.fuelAmount || 0,
+        customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
+        customerMobile: tx.customerMobile || tx.customer?.mobile || 'N/A',
+        groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
+        groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
+        discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
+        discountAmount: tx.discountAmount || 0,
+        finalAmount: tx.finalAmount || 0,
+      } as Transaction;
     }
 
     if (CONFIG.USE_MOCK_FALLBACK) {
@@ -294,10 +316,17 @@ export class TransactionService {
    * Get Today's Summary Metrics for Worker Home Screen
    */
   static async getTodaySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<TodayStats>('/transactions/today-summary');
+    const response = await apiClient.get<any>('/transactions/dashboard?period=today');
 
     if (response.success && response.data) {
-      return response.data;
+      const summary = response.data.summary;
+      return {
+        transactionCount: summary.transactionCount,
+        totalFuelAmount: summary.totalFuelAmount,
+        totalDiscountAmount: summary.totalDiscountAmount,
+        totalFinalAmount: summary.totalFinalAmount,
+        date: new Date().toISOString(),
+      };
     }
 
     if (CONFIG.USE_MOCK_FALLBACK) {
@@ -330,10 +359,17 @@ export class TransactionService {
    * Get This Month's Summary Metrics
    */
   static async getMonthlySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<TodayStats>('/transactions/monthly-summary');
+    const response = await apiClient.get<any>('/transactions/dashboard?period=month');
 
     if (response.success && response.data) {
-      return response.data;
+      const summary = response.data.summary;
+      return {
+        transactionCount: summary.transactionCount,
+        totalFuelAmount: summary.totalFuelAmount,
+        totalDiscountAmount: summary.totalDiscountAmount,
+        totalFinalAmount: summary.totalFinalAmount,
+        date: new Date().toISOString(),
+      };
     }
 
     if (CONFIG.USE_MOCK_FALLBACK) {
@@ -366,10 +402,17 @@ export class TransactionService {
    * Get This Year's Summary Metrics
    */
   static async getYearlySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<TodayStats>('/transactions/yearly-summary');
+    const response = await apiClient.get<any>('/transactions/dashboard?period=year');
 
     if (response.success && response.data) {
-      return response.data;
+      const summary = response.data.summary;
+      return {
+        transactionCount: summary.transactionCount,
+        totalFuelAmount: summary.totalFuelAmount,
+        totalDiscountAmount: summary.totalDiscountAmount,
+        totalFinalAmount: summary.totalFinalAmount,
+        date: new Date().toISOString(),
+      };
     }
 
     if (CONFIG.USE_MOCK_FALLBACK) {

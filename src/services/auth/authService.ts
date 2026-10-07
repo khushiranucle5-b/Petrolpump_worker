@@ -16,20 +16,47 @@ import {
   WorkerUser,
 } from '../../types/auth';
 
+export const authService = {
+  // 1. Request OTP
+  requestOtp: async (mobile: string) => {
+    const response = await apiClient.post('/auth/request-otp', { mobile }, { requiresAuth: false });
+    if (!response.success) {
+      throw new Error(response.error?.message || response.message || 'Network error.');
+    }
+    return response;
+  },
+
+  // 2. Verify OTP
+  verifyOtp: async (mobile: string, otp: string) => {
+    const response = await apiClient.post('/auth/verify-otp', { mobile, otp }, { requiresAuth: false });
+    if (!response.success) {
+      throw new Error(response.error?.message || response.message || 'Network error.');
+    }
+    return response;
+  }
+};
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export class AuthService {
   private static mockWorkerDatabase: WorkerUser = { ...INITIAL_MOCK_WORKER };
 
   /**
-   * Worker Login
-   * Accepts Email or Mobile + Password
+   * Request OTP
+   */
+  static async requestOtp(mobile: string): Promise<{ message: string; mockOtpForTesting?: string }> {
+    const data = await authService.requestOtp(mobile);
+    return data;
+  }
+
+  /**
+   * Worker Login (OTP)
    */
   static async login(credentials: LoginCredentials): Promise<{ user: WorkerUser; token: string }> {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials, { requiresAuth: false });
+    const data = await authService.verifyOtp(credentials.identifier, credentials.otp || credentials.password);
 
-    if (response.success && response.data) {
-      const { user, token } = response.data;
+    if (data.success && data.data) {
+      const { user, token } = data.data;
       await TokenStorage.setToken(token);
       await TokenStorage.setUser(user);
       return { user, token };
@@ -70,7 +97,7 @@ export class AuthService {
       return { user: activeUser, token };
     }
 
-    throw new Error(response.message || 'Invalid login credentials. Please try again.');
+    throw new Error('Invalid login credentials. Please try again.');
   }
 
   /**
@@ -160,7 +187,7 @@ export class AuthService {
    * Get Current Worker Profile
    */
   static async getProfile(): Promise<WorkerUser> {
-    const response = await apiClient.get<WorkerUser>('/worker/profile');
+    const response = await apiClient.get<WorkerUser>(`/profile?t=${Date.now()}`);
 
     if (response.success && response.data) {
       await TokenStorage.setUser(response.data);
@@ -180,7 +207,7 @@ export class AuthService {
    * Update Profile Details (Allowed fields only: Name, Mobile, Email, Photo)
    */
   static async updateProfile(payload: UpdateProfilePayload): Promise<WorkerUser> {
-    const response = await apiClient.put<WorkerUser>('/worker/profile', payload);
+    const response = await apiClient.put<WorkerUser>('/profile', payload);
 
     if (response.success && response.data) {
       await TokenStorage.setUser(response.data);
@@ -211,7 +238,7 @@ export class AuthService {
    * Change Password
    */
   static async changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
-    const response = await apiClient.put('/worker/password', payload);
+    const response = await apiClient.put('/password', payload);
 
     if (response.success) {
       return { message: response.message || 'Password updated successfully.' };
