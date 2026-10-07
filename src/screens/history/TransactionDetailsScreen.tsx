@@ -104,12 +104,12 @@ export const TransactionDetailsScreen: React.FC = () => {
             </Text>
           </View>
 
-          <View style={styles.row}>
+          {/* <View style={styles.row}>
             <Text style={[typography.bodySmall, styles.label]}>Mobile Number</Text>
             <Text style={[typography.bodyMedium, styles.value]}>
               {transaction.customerMobile}
             </Text>
-          </View>
+          </View> */}
 
           <View style={styles.row}>
             <Text style={[typography.bodySmall, styles.label]}>Affiliated Group</Text>

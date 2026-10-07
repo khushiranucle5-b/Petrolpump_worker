@@ -56,7 +56,20 @@ export class TransactionService {
 
     if (response.success && response.data?.transaction) {
       this.processedIdempotencyKeys.add(payload.idempotencyKey);
-      return response.data.transaction;
+      const tx = response.data.transaction as any;
+      return {
+        ...tx,
+        transactionId: tx.transactionId || tx.id,
+        fuelAmount: tx.amount || tx.fuelAmount || 0,
+        customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
+        customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
+        groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
+        groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
+        discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
+        discountAmount: tx.discountAmount || 0,
+        finalAmount: tx.finalAmount || 0,
+        branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
+      } as Transaction;
     }
 
     // Isolated Mock Fallback
@@ -188,12 +201,13 @@ export class TransactionService {
           transactionId: tx.transactionId || tx.id,
           fuelAmount: tx.amount || tx.fuelAmount || 0,
           customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
-          customerMobile: tx.customerMobile || tx.customer?.mobile || 'N/A',
+          customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
           groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
           groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
           discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
           discountAmount: tx.discountAmount || 0,
           finalAmount: tx.finalAmount || 0,
+          branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
         })),
         total: data.length,
         page: 1,
@@ -292,12 +306,13 @@ export class TransactionService {
         transactionId: tx.transactionId || tx.id,
         fuelAmount: tx.amount || tx.fuelAmount || 0,
         customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
-        customerMobile: tx.customerMobile || tx.customer?.mobile || 'N/A',
+        customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
         groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
         groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
         discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
         discountAmount: tx.discountAmount || 0,
         finalAmount: tx.finalAmount || 0,
+        branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
       } as Transaction;
     }
 

@@ -19,7 +19,11 @@ import {
 export const authService = {
   // 1. Request OTP
   requestOtp: async (mobile: string) => {
-    const response = await apiClient.post('/auth/request-otp', { mobile }, { requiresAuth: false });
+    const response = await apiClient.post<{ message: string; mockOtpForTesting?: string; otp?: string }>(
+      '/auth/request-otp',
+      { mobile },
+      { requiresAuth: false }
+    );
     if (!response.success) {
       throw new Error(response.error?.message || response.message || 'Network error.');
     }
@@ -28,7 +32,7 @@ export const authService = {
 
   // 2. Verify OTP
   verifyOtp: async (mobile: string, otp: string) => {
-    const response = await apiClient.post('/auth/verify-otp', { mobile, otp }, { requiresAuth: false });
+    const response = await apiClient.post<AuthResponse>('/auth/verify-otp', { mobile, otp }, { requiresAuth: false });
     if (!response.success) {
       throw new Error(response.error?.message || response.message || 'Network error.');
     }
@@ -45,8 +49,16 @@ export class AuthService {
    * Request OTP
    */
   static async requestOtp(mobile: string): Promise<{ message: string; mockOtpForTesting?: string }> {
-    const data = await authService.requestOtp(mobile);
-    return data;
+    try {
+      const response = await authService.requestOtp(mobile);
+      return response.data || { message: response.message || 'OTP sent successfully', mockOtpForTesting: (response as any).otp };
+    } catch (error) {
+      if (CONFIG.USE_MOCK_FALLBACK) {
+        await sleep(CONFIG.MOCK_DELAY_MS);
+        return { message: 'Mock OTP sent (Fallback)', mockOtpForTesting: '123456' };
+      }
+      throw error;
+    }
   }
 
   /**
