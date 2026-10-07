@@ -47,9 +47,8 @@ export const HistoryScreen: React.FC = () => {
   const filterTabs: { type: HistoryFilterType; label: string }[] = [
     { type: 'ALL', label: 'All' },
     { type: 'TODAY', label: 'Today' },
-    { type: 'YESTERDAY', label: 'Yesterday' },
-    { type: 'THIS_WEEK', label: 'This Week' },
     { type: 'THIS_MONTH', label: 'This Month' },
+    { type: 'THIS_YEAR', label: 'This Year' },
   ];
 
   const fetchHistory = async (pageNum: number = 1, isRefresh: boolean = false) => {
@@ -255,9 +254,9 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   filterChipText: {
-    ...typography.caption,
+    fontSize: 14,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   filterChipTextActive: {
     color: '#FFFFFF',
