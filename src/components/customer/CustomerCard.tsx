@@ -13,22 +13,47 @@ import { Icon } from '../common/Icon';
 interface CustomerCardProps {
   customer: CustomerProfile;
   showDiscountPill?: boolean;
+  discountPercentage?: number;
 }
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({
   customer,
   showDiscountPill = true,
+  discountPercentage,
 }) => {
   const [imageError, setImageError] = React.useState(false);
 
   const getInitials = (name: string) => {
-    return name
+    return (name || 'C')
       .split(' ')
       .map(n => n[0])
       .slice(0, 2)
       .join('')
       .toUpperCase();
   };
+
+  const rawGroup = (customer.group || (customer as any).Group || {}) as any;
+  const groupName = rawGroup.groupName || rawGroup.name || 'Standard Customer';
+
+  const discountVal = Number(
+    discountPercentage ??
+    rawGroup.discountPercentage ??
+    rawGroup.discountPercent ??
+    rawGroup.discount ??
+    (customer as any).discountPercentage ??
+    (customer as any).discountPercent ??
+    (customer as any).discount ??
+    0
+  );
+
+  const mobile = customer.mobileNumber || (customer as any).mobile || (customer as any).phone || '';
+  const rawId = customer.displayId || customer.customId || customer.customerId || customer.id || '';
+  const displayId =
+    customer.displayId ||
+    customer.customId ||
+    (customer.customerId && !customer.customerId.includes('-') ? customer.customerId : null) ||
+    (mobile ? `CUST-${mobile.slice(-4)}` : null) ||
+    (rawId ? `CUST-${rawId.replace(/-/g, '').slice(0, 8).toUpperCase()}` : 'CUST-001');
 
   return (
     <View style={styles.card}>
@@ -58,10 +83,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             <Text style={[typography.h3, styles.customerName]} numberOfLines={1}>
               {customer.fullName}
             </Text>
-            <StatusBadge status={customer.status} size="sm" />
+            <StatusBadge status={customer.status || 'ACTIVE'} size="sm" />
           </View>
           <Text style={[typography.caption, styles.customerId]}>
-            ID: {customer.customerId}
+            ID: {displayId}
           </Text>
         </View>
       </View>
@@ -72,13 +97,13 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           <View style={styles.groupTitleRow}>
             <Icon name="building" size={16} color={colors.cyanDark} />
             <Text style={[typography.label, styles.groupTitle]}>
-              {customer.group.groupName}
+              {groupName}
             </Text>
           </View>
           {showDiscountPill && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>
-                {customer.group.discountPercentage}% OFF
+                {discountVal}% OFF
               </Text>
             </View>
           )}

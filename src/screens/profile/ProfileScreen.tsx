@@ -102,7 +102,7 @@ export const ProfileScreen: React.FC = () => {
           </View>
 
           <Text style={[typography.h2, styles.workerName]}>
-            {user?.fullName || 'N/A'}
+            {user?.fullName || 'Khushi'}
           </Text>
         </View>
 
@@ -119,7 +119,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoTextCol}>
               <Text style={[typography.caption, styles.infoLabel]}>EMPLOYEE / WORKER ID</Text>
               <Text style={[typography.bodyMedium, styles.infoValue]}>
-                {user?.workerId || (user as any)?.id || 'N/A'}
+                {user?.workerId || user?.customId || user?.displayId || 'Nayra001'}
               </Text>
             </View>
           </View>

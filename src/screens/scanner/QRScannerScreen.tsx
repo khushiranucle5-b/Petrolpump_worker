@@ -106,7 +106,7 @@ export const QRScannerScreen: React.FC = () => {
     try {
       const response = await QRService.validateQRToken({
         qrToken: tokenString.trim(),
-        workerId: user?.workerId || 'EMP-7842',
+        workerId: user?.workerId || user?.customId || user?.displayId || '',
         petrolPumpId: user?.petrolPumpId || 'pp-01',
         scannedAt: new Date().toISOString(),
       });
@@ -133,6 +133,11 @@ export const QRScannerScreen: React.FC = () => {
         isScanningLocked.current = false;
       }, 1000);
     }
+  };
+
+  const handleDismissError = () => {
+    setErrorDetails(null);
+    (navigation as any).navigate('MainTabs', { screen: 'HomeTab' });
   };
 
   // If permission is denied or undetermined
@@ -226,15 +231,7 @@ export const QRScannerScreen: React.FC = () => {
             />
           </View>
 
-         
 
-          {/* Dummy Scan Button for testing */}
-          <TouchableOpacity 
-            style={{ marginTop: 24, padding: 12, backgroundColor: colors.primary, borderRadius: 8 }}
-            onPress={() => handleProcessQRToken('dummy-qr-token-123')}
-          >
-            <Text style={{ color: colors.textInverse, fontWeight: 'bold' }}>Simulate Scan (Test)</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -261,7 +258,7 @@ export const QRScannerScreen: React.FC = () => {
           transparent
           visible={!!errorDetails}
           animationType="fade"
-          onRequestClose={() => setErrorDetails(null)}
+          onRequestClose={handleDismissError}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.errorModalCard}>
@@ -278,7 +275,7 @@ export const QRScannerScreen: React.FC = () => {
               <View style={styles.modalBtnRow}>
                 <Button
                   title="Dismiss"
-                  onPress={() => setErrorDetails(null)}
+                  onPress={handleDismissError}
                   variant="outline"
                   size="md"
                   style={{ flex: 1 }}

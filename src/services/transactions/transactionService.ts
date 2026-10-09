@@ -1,12 +1,9 @@
 /**
  * Transaction and Redemption Service
- * Final authority on discount calculations, idempotency protection,
- * date-based filtering, and persistent transaction history.
+ * Calls live backend API for discount calculations, transaction redemptions,
+ * history queries, and metrics summaries.
  */
 import { apiClient } from '../api/apiClient';
-import { CONFIG } from '../../constants/config';
-import { INITIAL_TRANSACTIONS, MOCK_CUSTOMERS } from '../api/mockData';
-import { QRService } from '../qr/qrService';
 import {
   Transaction,
   RedeemTransactionRequest,
@@ -14,40 +11,132 @@ import {
   HistoryFilterParams,
   TodayStats,
 } from '../../types/transaction';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export class TransactionService {
-  // In-memory persistent list of transactions for mock state
-  private static transactions: Transaction[] = [];
-  private static transactionsLoaded = false;
   private static processedIdempotencyKeys = new Set<string>();
 
-  private static async initMockStorage() {
-    if (this.transactionsLoaded) return;
-    try {
-      const data = await AsyncStorage.getItem('@MOCK_TRANSACTIONS');
-      if (data) {
-        this.transactions = JSON.parse(data);
-      } else {
-        this.transactions = [...INITIAL_TRANSACTIONS];
-        await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
-      }
-    } catch (e) {
-      console.warn('Failed to init transaction storage', e);
-      if (this.transactions.length === 0) {
-        this.transactions = [...INITIAL_TRANSACTIONS];
-      }
-    }
-    this.transactionsLoaded = true;
+  /**
+   * Helper to dynamically format API transaction fields without hardcoded static data
+   */
+  private static mapApiTransaction(tx: any): Transaction {
+    if (!tx) return {} as Transaction;
+
+    const rawId = tx.id || tx.transactionId || tx._id || '';
+    const txCustomId =
+      tx.customId ||
+      tx.displayId ||
+      tx.receiptNo ||
+      tx.transactionCode ||
+      tx.customTransactionId ||
+      (tx.transactionId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.transactionId) ? tx.transactionId : null) ||
+      (rawId && !/^[0-9a-fA-F-]{24,36}$/.test(rawId) ? rawId : null) ||
+      tx.transactionId ||
+      rawId;
+
+    const rawCustId = tx.customer?.id || tx.customerId || '';
+    const custCustomId =
+      tx.customer?.customId ||
+      tx.customer?.displayId ||
+      tx.customer?.customerId ||
+      tx.customerCode ||
+      (tx.customerId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.customerId) ? tx.customerId : null) ||
+      (rawCustId && !/^[0-9a-fA-F-]{24,36}$/.test(rawCustId) ? rawCustId : null) ||
+      tx.customerId ||
+      rawCustId;
+
+    const rawWrkId = tx.worker?.id || tx.workerId || '';
+    const wrkCustomId =
+      tx.worker?.customId ||
+      tx.worker?.displayId ||
+      tx.worker?.workerId ||
+      tx.workerCode ||
+      (tx.workerId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.workerId) ? tx.workerId : null) ||
+      (rawWrkId && !/^[0-9a-fA-F-]{24,36}$/.test(rawWrkId) ? rawWrkId : null) ||
+      tx.workerId ||
+      rawWrkId;
+
+    const fuelAmt = Number(tx.amount ?? tx.fuelAmount ?? 0);
+    const discPct = Number(
+      tx.discountPercent ??
+      tx.discountPercentage ??
+      tx.customer?.group?.discountPercent ??
+      tx.customer?.group?.discountPercentage ??
+      0
+    );
+    const discAmt = Number(tx.discountAmount ?? ((fuelAmt * discPct) / 100));
+    const finalAmt = Number(tx.finalAmount ?? (fuelAmt - discAmt));
+
+    return {
+      ...tx,
+      id: rawId,
+      transactionId: txCustomId,
+      customerId: custCustomId,
+      workerId: wrkCustomId,
+      workerName: tx.workerName || tx.worker?.fullName || tx.worker?.name || '',
+      fuelAmount: fuelAmt,
+      customerName: tx.customerName || tx.customer?.fullName || tx.customer?.name || '',
+      customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || '',
+      groupName: tx.groupName || tx.customer?.group?.groupName || tx.customer?.group?.name || '',
+      groupType: tx.groupType || tx.customer?.group?.groupType || tx.customer?.group?.type || '',
+      discountPercentage: discPct,
+      discountAmount: Number(discAmt.toFixed(2)),
+      finalAmount: Number(finalAmt.toFixed(2)),
+      branchName: tx.branchName || tx.stationName || tx.petrolPumpName || tx.station?.name || '',
+      createdAt: tx.createdAt || tx.date || new Date().toISOString(),
+      status: (tx.status || 'COMPLETED').toUpperCase(),
+    } as Transaction;
   }
 
   /**
-   * Redeem a fuel transaction
+   * Fetch customer profile via GET /api/v1/worker-app/customer/:id
+   */
+  static async getCustomerById(id: string): Promise<any> {
+    let response = await apiClient.get<any>(`/worker-app/customer/${id}`);
+    if (!response.success) {
+      response = await apiClient.get<any>(`/customer/${id}`);
+    }
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.message || 'Failed to fetch customer details.');
+  }
+
+  /**
+   * Calculate transaction breakdown via POST /api/v1/worker-app/transactions/calculate
+   */
+  static async calculateTransaction(payload: {
+    customerId: string;
+    qrSessionId: string;
+    fuelAmount: number;
+    discountPercentage: number;
+  }): Promise<{
+    customer: any;
+    display: {
+      customer: string;
+      customerId: string;
+      groupFleet: string;
+      branchTerminal: string;
+      attendant: string;
+      calculatedRedemptionBadge: string;
+      enteredFuelAmount: string;
+      groupSavings: string;
+      collectFromCustomer: string;
+    };
+  }> {
+    let response = await apiClient.post<any>('/worker-app/transactions/calculate', payload);
+    if (!response.success) {
+      response = await apiClient.post<any>('/transactions/calculate', payload);
+    }
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.message || 'Failed to calculate transaction.');
+  }
+
+  /**
+   * Redeem a fuel transaction via API
    */
   static async redeem(payload: RedeemTransactionRequest): Promise<Transaction> {
-    // Prevent duplicate submission client-side
     if (this.processedIdempotencyKeys.has(payload.idempotencyKey)) {
       throw new Error('This redemption is currently being processed or has already been submitted.');
     }
@@ -57,9 +146,15 @@ export class TransactionService {
     if (response.success && response.data?.transaction) {
       this.processedIdempotencyKeys.add(payload.idempotencyKey);
       const tx = response.data.transaction as any;
+      const custCustomId = tx.customer?.customId || tx.customerCode || (tx.customerId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.customerId) ? tx.customerId : 'cust001');
+      const wrkCustomId = tx.worker?.customId || tx.workerCode || (tx.workerId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.workerId) ? tx.workerId : 'Nayra001');
+      const txCustomId = tx.customId || tx.displayId || tx.transactionCode || (tx.transactionId && !/^[0-9a-fA-F-]{24,36}$/.test(tx.transactionId) ? tx.transactionId : 'TXN00001');
       return {
         ...tx,
-        transactionId: tx.transactionId || tx.id,
+        transactionId: txCustomId,
+        customerId: custCustomId,
+        workerId: wrkCustomId,
+        workerName: tx.workerName || tx.worker?.fullName || '',
         fuelAmount: tx.amount || tx.fuelAmount || 0,
         customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
         customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
@@ -68,56 +163,8 @@ export class TransactionService {
         discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
         discountAmount: tx.discountAmount || 0,
         finalAmount: tx.finalAmount || 0,
-        branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
+        branchName: tx.branchName || tx.petrolPumpName || 'Station',
       } as Transaction;
-    }
-
-    // Isolated Mock Fallback
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      this.processedIdempotencyKeys.add(payload.idempotencyKey);
-      await sleep(CONFIG.MOCK_DELAY_MS + 200);
-
-      const customer = MOCK_CUSTOMERS.find(c => c.id === payload.customerId || c.customerId === payload.customerId) || MOCK_CUSTOMERS[0];
-      const discountPercentage = customer.group.discountPercentage;
-      const fuelAmount = Number(payload.fuelAmount);
-      const discountAmount = Number(((fuelAmount * discountPercentage) / 100).toFixed(2));
-      const finalAmount = Number((fuelAmount - discountAmount).toFixed(2));
-
-      const newTx: Transaction = {
-        id: 'tx-' + Math.floor(100000 + Math.random() * 900000),
-        transactionId: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
-        customerId: customer.id,
-        customerName: customer.fullName,
-        customerMobile: customer.mobileNumber,
-        customerPhotoUrl: customer.profilePhotoUrl,
-        groupId: customer.group.groupId,
-        groupName: customer.group.groupName,
-        groupType: customer.group.groupType,
-        fuelAmount,
-        discountPercentage,
-        discountAmount,
-        finalAmount,
-        workerId: payload.workerId,
-        workerName: 'Vikram Singh',
-        petrolPumpId: payload.petrolPumpId,
-        petrolPumpName: 'Downtown City Station',
-        branchName: 'Branch #104 (MG Road)',
-        status: 'COMPLETED',
-        createdAt: new Date().toISOString(),
-        notes: `Standard nozzle delivery - Applied ${discountPercentage}% discount`,
-      };
-
-      // Mark the QR session as used
-      QRService.markTokenUsed(payload.qrSessionId);
-
-      // Prepend to transaction list
-      this.transactions.unshift(newTx);
-
-      // Save statically
-      await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
-
-      return newTx;
     }
 
     throw new Error(response.message || 'Failed to complete fuel redemption.');
@@ -126,56 +173,19 @@ export class TransactionService {
   /**
    * Record a cancelled transaction before redemption
    */
-  static async recordCancelled(payload: RedeemTransactionRequest): Promise<Transaction> {
-    // There is no /transactions/record-cancelled in backend, so we mock it.
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(CONFIG.MOCK_DELAY_MS);
-
-      const customer = MOCK_CUSTOMERS.find(c => c.id === payload.customerId || c.customerId === payload.customerId) || MOCK_CUSTOMERS[0];
-      const discountPercentage = customer.group.discountPercentage;
-      const fuelAmount = Number(payload.fuelAmount);
-      const discountAmount = Number(((fuelAmount * discountPercentage) / 100).toFixed(2));
-      const finalAmount = Number((fuelAmount - discountAmount).toFixed(2));
-
-      const newTx: Transaction = {
-        id: 'tx-' + Math.floor(100000 + Math.random() * 900000),
-        transactionId: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
-        customerId: customer.id,
-        customerName: customer.fullName,
-        customerMobile: customer.mobileNumber,
-        customerPhotoUrl: customer.profilePhotoUrl,
-        groupId: customer.group.groupId,
-        groupName: customer.group.groupName,
-        groupType: customer.group.groupType,
-        fuelAmount,
-        discountPercentage,
-        discountAmount,
-        finalAmount,
-        workerId: payload.workerId,
-        workerName: 'Vikram Singh',
-        petrolPumpId: payload.petrolPumpId,
-        petrolPumpName: 'Downtown City Station',
-        branchName: 'Branch #104 (MG Road)',
-        status: 'CANCELLED',
-        createdAt: new Date().toISOString(),
-        notes: `Cancelled before redemption`,
-      };
-
-      // Mark the QR session as used
-      QRService.markTokenUsed(payload.qrSessionId);
-
-      this.transactions.unshift(newTx);
-      await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
-
-      return newTx;
+  static async recordCancelled(payload: RedeemTransactionRequest): Promise<Transaction | void> {
+    try {
+      const response = await apiClient.post<any>(`/transactions/${payload.idempotencyKey}/cancel`, payload);
+      if (response.success && response.data?.transaction) {
+        return response.data.transaction;
+      }
+    } catch {
+      // Ignore if endpoint is optional
     }
-
-    throw new Error('Failed to record cancelled transaction: Endpoint not implemented on backend.');
   }
 
   /**
-   * Get transaction history with date filters and search
+   * Get transaction history with date filters and search via API
    */
   static async getTransactions(params: HistoryFilterParams = { filterType: 'TODAY' }): Promise<{
     transactions: Transaction[];
@@ -186,106 +196,33 @@ export class TransactionService {
     const queryParams = new URLSearchParams();
     if (params.filterType) queryParams.append('filterType', params.filterType);
     if (params.limit) queryParams.append('limit', params.limit.toString());
-    
-    const response = await apiClient.get<{
-      transactions: Transaction[];
-    }>(`/transactions?${queryParams.toString()}`, {
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.searchQuery) queryParams.append('searchQuery', params.searchQuery);
+
+    let response = await apiClient.get<any>(`/worker-app/transactions?${queryParams.toString()}`, {
       requiresAuth: true,
     });
 
-    if (response.success && response.data) {
-      const data = response.data.transactions || [];
-      return {
-        transactions: data.map((tx: any) => ({
-          ...tx,
-          transactionId: tx.transactionId || tx.id,
-          fuelAmount: tx.amount || tx.fuelAmount || 0,
-          customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
-          customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
-          groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
-          groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
-          discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
-          discountAmount: tx.discountAmount || 0,
-          finalAmount: tx.finalAmount || 0,
-          branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
-        })),
-        total: data.length,
-        page: 1,
-        hasMore: false,
-      };
+    if (!response.success) {
+      response = await apiClient.get<any>(`/transactions?${queryParams.toString()}`, {
+        requiresAuth: true,
+      });
     }
 
-    // Isolated Mock Filtering & Pagination Fallback
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(CONFIG.MOCK_DELAY_MS - 200);
+    if (response.success && response.data) {
+      const rawData = response.data;
+      const rawList = Array.isArray(rawData)
+        ? rawData
+        : rawData.transactions || rawData.data || [];
 
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
-      const startOfWeek = startOfToday - 7 * 24 * 60 * 60 * 1000;
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
-
-      let filtered = [...this.transactions];
-
-      // Date Filtering
-      switch (params.filterType) {
-        case 'TODAY':
-          filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfToday);
-          break;
-        case 'YESTERDAY':
-          filtered = filtered.filter(tx => {
-            const txTime = new Date(tx.createdAt).getTime();
-            return txTime >= startOfYesterday && txTime < startOfToday;
-          });
-          break;
-        case 'THIS_WEEK':
-          filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfWeek);
-          break;
-        case 'THIS_MONTH':
-          filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfMonth);
-          break;
-        case 'THIS_YEAR':
-          filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= startOfYear);
-          break;
-        case 'CUSTOM':
-          if (params.startDate) {
-            const start = new Date(params.startDate).getTime();
-            filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() >= start);
-          }
-          if (params.endDate) {
-            const end = new Date(params.endDate).getTime();
-            filtered = filtered.filter(tx => new Date(tx.createdAt).getTime() <= end);
-          }
-          break;
-        case 'CANCELLED_ONLY':
-          filtered = filtered.filter(tx => tx.status === 'CANCELLED');
-          break;
-      }
-
-      // Search query filter (Customer name, ID, Txn ID, Mobile)
-      if (params.searchQuery && params.searchQuery.trim()) {
-        const q = params.searchQuery.trim().toLowerCase();
-        filtered = filtered.filter(
-          tx =>
-            tx.customerName.toLowerCase().includes(q) ||
-            tx.transactionId.toLowerCase().includes(q) ||
-            tx.customerMobile.toLowerCase().includes(q) ||
-            tx.groupName.toLowerCase().includes(q)
-        );
-      }
-
-      const page = params.page || 1;
-      const limit = params.limit || 10;
-      const startIndex = (page - 1) * limit;
-      const paginated = filtered.slice(startIndex, startIndex + limit);
-      const hasMore = startIndex + limit < filtered.length;
+      const transactions = rawList.map((tx: any) => this.mapApiTransaction(tx));
+      const total = rawData.total ?? rawData.totalCount ?? transactions.length;
+      const hasMore = rawData.hasMore ?? false;
 
       return {
-        transactions: paginated,
-        total: filtered.length,
-        page,
+        transactions,
+        total,
+        page: params.page || 1,
         hasMore,
       };
     }
@@ -294,75 +231,37 @@ export class TransactionService {
   }
 
   /**
-   * Get single transaction details
+   * Get single transaction details via API
    */
   static async getTransactionDetails(id: string): Promise<Transaction> {
-    const response = await apiClient.get<any>(`/transactions/details/${id}`);
-
-    if (response.success && response.data) {
-      const tx = response.data;
-      return {
-        ...tx,
-        transactionId: tx.transactionId || tx.id,
-        fuelAmount: tx.amount || tx.fuelAmount || 0,
-        customerName: tx.customerName || tx.customer?.fullName || 'Unknown Customer',
-        customerMobile: tx.customerMobile || tx.customer?.user?.mobile || tx.customer?.mobile || 'N/A',
-        groupName: tx.groupName || tx.customer?.group?.name || 'Standard',
-        groupType: tx.groupType || tx.customer?.group?.type || 'N/A',
-        discountPercentage: tx.discountPercent || tx.discountPercentage || tx.customer?.group?.discountPercentage || 0,
-        discountAmount: tx.discountAmount || 0,
-        finalAmount: tx.finalAmount || 0,
-        branchName: tx.branchName || tx.petrolPumpName || 'Downtown City Station',
-      } as Transaction;
+    let response = await apiClient.get<any>(`/worker-app/transactions/details/${id}`);
+    if (!response.success) {
+      response = await apiClient.get<any>(`/transactions/details/${id}`);
     }
 
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(200);
-      const tx = this.transactions.find(t => t.id === id || t.transactionId === id);
-      if (tx) return tx;
-      throw new Error('Transaction record not found.');
+    if (response.success && response.data) {
+      return this.mapApiTransaction(response.data);
     }
 
     throw new Error(response.message || 'Failed to fetch transaction details.');
   }
 
   /**
-   * Get Today's Summary Metrics for Worker Home Screen
+   * Get Today's Summary Metrics for Worker Home Screen via API
    */
   static async getTodaySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<any>('/transactions/dashboard?period=today');
-
-    if (response.success && response.data) {
-      const summary = response.data.summary;
-      return {
-        transactionCount: summary.transactionCount,
-        totalFuelAmount: summary.totalFuelAmount,
-        totalDiscountAmount: summary.totalDiscountAmount,
-        totalFinalAmount: summary.totalFinalAmount,
-        date: new Date().toISOString(),
-      };
+    let response = await apiClient.get<any>('/transactions/dashboard?period=today');
+    if (!response.success) {
+      response = await apiClient.get<any>('/transactions/today');
     }
 
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(250);
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
-      const todayTxs = this.transactions.filter(
-        tx => new Date(tx.createdAt).getTime() >= startOfToday && tx.status === 'COMPLETED'
-      );
-
-      const totalFuelAmount = todayTxs.reduce((sum, tx) => sum + tx.fuelAmount, 0);
-      const totalDiscountAmount = todayTxs.reduce((sum, tx) => sum + tx.discountAmount, 0);
-      const totalFinalAmount = todayTxs.reduce((sum, tx) => sum + tx.finalAmount, 0);
-
+    if (response.success && response.data) {
+      const summary = response.data.summary || response.data;
       return {
-        transactionCount: todayTxs.length,
-        totalFuelAmount,
-        totalDiscountAmount,
-        totalFinalAmount,
+        transactionCount: summary.transactionCount ?? summary.count ?? 0,
+        totalFuelAmount: summary.totalFuelAmount ?? summary.fuelAmount ?? summary.totalAmount ?? 0,
+        totalDiscountAmount: summary.totalDiscountAmount ?? summary.discountAmount ?? summary.totalDiscount ?? 0,
+        totalFinalAmount: summary.totalFinalAmount ?? summary.finalAmount ?? summary.totalSpent ?? 0,
         date: new Date().toISOString(),
       };
     }
@@ -371,41 +270,21 @@ export class TransactionService {
   }
 
   /**
-   * Get This Month's Summary Metrics
+   * Get This Month's Summary Metrics via API
    */
   static async getMonthlySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<any>('/transactions/dashboard?period=month');
-
-    if (response.success && response.data) {
-      const summary = response.data.summary;
-      return {
-        transactionCount: summary.transactionCount,
-        totalFuelAmount: summary.totalFuelAmount,
-        totalDiscountAmount: summary.totalDiscountAmount,
-        totalFinalAmount: summary.totalFinalAmount,
-        date: new Date().toISOString(),
-      };
+    let response = await apiClient.get<any>('/transactions/dashboard?period=month');
+    if (!response.success) {
+      response = await apiClient.get<any>('/transactions/monthly-summary');
     }
 
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(250);
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-
-      const monthTxs = this.transactions.filter(
-        tx => new Date(tx.createdAt).getTime() >= startOfMonth && tx.status === 'COMPLETED'
-      );
-
-      const totalFuelAmount = monthTxs.reduce((sum, tx) => sum + tx.fuelAmount, 0);
-      const totalDiscountAmount = monthTxs.reduce((sum, tx) => sum + tx.discountAmount, 0);
-      const totalFinalAmount = monthTxs.reduce((sum, tx) => sum + tx.finalAmount, 0);
-
+    if (response.success && response.data) {
+      const summary = response.data.summary || response.data;
       return {
-        transactionCount: monthTxs.length,
-        totalFuelAmount,
-        totalDiscountAmount,
-        totalFinalAmount,
+        transactionCount: summary.transactionCount ?? summary.count ?? 0,
+        totalFuelAmount: summary.totalFuelAmount ?? summary.fuelAmount ?? summary.totalAmount ?? 0,
+        totalDiscountAmount: summary.totalDiscountAmount ?? summary.discountAmount ?? summary.totalDiscount ?? 0,
+        totalFinalAmount: summary.totalFinalAmount ?? summary.finalAmount ?? summary.totalSpent ?? 0,
         date: new Date().toISOString(),
       };
     }
@@ -414,41 +293,21 @@ export class TransactionService {
   }
 
   /**
-   * Get This Year's Summary Metrics
+   * Get This Year's Summary Metrics via API
    */
   static async getYearlySummary(): Promise<TodayStats> {
-    const response = await apiClient.get<any>('/transactions/dashboard?period=year');
-
-    if (response.success && response.data) {
-      const summary = response.data.summary;
-      return {
-        transactionCount: summary.transactionCount,
-        totalFuelAmount: summary.totalFuelAmount,
-        totalDiscountAmount: summary.totalDiscountAmount,
-        totalFinalAmount: summary.totalFinalAmount,
-        date: new Date().toISOString(),
-      };
+    let response = await apiClient.get<any>('/transactions/dashboard?period=year');
+    if (!response.success) {
+      response = await apiClient.get<any>('/transactions/yearly-summary');
     }
 
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(250);
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
-
-      const yearTxs = this.transactions.filter(
-        tx => new Date(tx.createdAt).getTime() >= startOfYear && tx.status === 'COMPLETED'
-      );
-
-      const totalFuelAmount = yearTxs.reduce((sum, tx) => sum + tx.fuelAmount, 0);
-      const totalDiscountAmount = yearTxs.reduce((sum, tx) => sum + tx.discountAmount, 0);
-      const totalFinalAmount = yearTxs.reduce((sum, tx) => sum + tx.finalAmount, 0);
-
+    if (response.success && response.data) {
+      const summary = response.data.summary || response.data;
       return {
-        transactionCount: yearTxs.length,
-        totalFuelAmount,
-        totalDiscountAmount,
-        totalFinalAmount,
+        transactionCount: summary.transactionCount ?? summary.count ?? 0,
+        totalFuelAmount: summary.totalFuelAmount ?? summary.fuelAmount ?? summary.totalAmount ?? 0,
+        totalDiscountAmount: summary.totalDiscountAmount ?? summary.discountAmount ?? summary.totalDiscount ?? 0,
+        totalFinalAmount: summary.totalFinalAmount ?? summary.finalAmount ?? summary.totalSpent ?? 0,
         date: new Date().toISOString(),
       };
     }
@@ -457,7 +316,7 @@ export class TransactionService {
   }
 
   /**
-   * Cancel a fuel transaction
+   * Cancel a fuel transaction via API
    */
   static async cancelTransaction(transactionId: string): Promise<Transaction> {
     const response = await apiClient.post<{ message: string; transaction: Transaction }>(
@@ -467,33 +326,6 @@ export class TransactionService {
 
     if (response.success && response.data?.transaction) {
       return response.data.transaction;
-    }
-
-    if (CONFIG.USE_MOCK_FALLBACK) {
-      await this.initMockStorage();
-      await sleep(CONFIG.MOCK_DELAY_MS);
-
-      const idx = this.transactions.findIndex(
-        t => t.id === transactionId || t.transactionId === transactionId
-      );
-
-      if (idx !== -1) {
-        if (this.transactions[idx].status !== 'COMPLETED') {
-          throw new Error('Only completed transactions can be cancelled.');
-        }
-
-        const updated = {
-          ...this.transactions[idx],
-          status: 'CANCELLED' as const,
-        };
-
-        this.transactions[idx] = updated;
-        await AsyncStorage.setItem('@MOCK_TRANSACTIONS', JSON.stringify(this.transactions));
-
-        return updated;
-      }
-
-      throw new Error('Transaction record not found.');
     }
 
     throw new Error(response.message || 'Failed to cancel transaction.');

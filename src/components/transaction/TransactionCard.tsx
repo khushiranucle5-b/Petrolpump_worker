@@ -31,13 +31,19 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
       <View style={styles.topRow}>
         <View style={styles.customerInfo}>
           <Text style={[typography.h4, styles.customerName]} numberOfLines={1}>
-            {transaction.customerName}
+            {transaction.transactionId}
           </Text>
-          <Text style={[typography.caption, styles.groupName]} numberOfLines={1}>
-            {transaction.groupName}
-          </Text>
+          <View style={styles.groupRow}>
+            <Icon name="users" size={13} color={colors.cyanDark} style={styles.groupIcon} />
+            <Text style={[typography.caption, styles.groupName]} numberOfLines={1}>
+              {transaction.groupName}
+            </Text>
+          </View>
         </View>
-        <StatusBadge status={transaction.status} size="sm" />
+        <View style={styles.statusRow}>
+          <StatusBadge status={transaction.status} size="sm" />
+          <Icon name="chevron-right" size={16} color={colors.textSecondary} style={styles.chevronIcon} />
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -74,12 +80,9 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             {formatDate(transaction.createdAt)} • {formatTime(transaction.createdAt)}
           </Text>
         </View>
-        <View style={styles.arrowRow}>
-          <Text style={[typography.caption, styles.txnIdText]}>
-            {transaction.transactionId}
-          </Text>
-          <Icon name="chevron-right" size={14} color={colors.textSecondary} />
-        </View>
+        <Text style={[typography.caption, styles.customerFooterText]}>
+          {transaction.customerName}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -110,10 +113,24 @@ const styles = StyleSheet.create({
   customerName: {
     color: colors.textPrimary,
   },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  groupIcon: {
+    marginRight: 4,
+  },
   groupName: {
     color: colors.cyanDark,
     fontWeight: '600',
-    marginTop: 2,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chevronIcon: {
+    marginLeft: 6,
   },
   divider: {
     height: 1,
@@ -172,13 +189,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginLeft: spacing.xxs,
   },
-  arrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  txnIdText: {
+  customerFooterText: {
     color: colors.textSecondary,
     fontWeight: '600',
-    marginRight: 2,
   },
 });

@@ -4,14 +4,18 @@
  */
 import { Platform } from 'react-native';
 
-export const API_URL = process.env.API_URL || 'http://localhost:5000/api/v1';
+const rawApiUrl = process.env.API_URL || '';
+
+export const API_URL = rawApiUrl;
 
 export const CONFIG = {
   APP_NAME: 'PetrolPump Worker',
   APP_VERSION: '1.0.0',
   
-  // API URL - Changeable via environment or build variant
-  API_BASE_URL: process.env.API_BASE_URL || `${API_URL}/worker-app`,
+  // API URL - Sourced from environment variable, ensuring /worker-app namespace
+  API_BASE_URL: rawApiUrl
+    ? (rawApiUrl.endsWith('/worker-app') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/worker-app`)
+    : '',
   
 
   // Request timeout in ms

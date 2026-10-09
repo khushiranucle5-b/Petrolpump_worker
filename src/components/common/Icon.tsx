@@ -41,6 +41,7 @@ import {
   Award,
   IndianRupee,
   MapPin,
+  Users,
   LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
@@ -81,7 +82,8 @@ export type IconName =
   | 'building'
   | 'badge'
   | 'rupee'
-  | 'map-pin';
+  | 'map-pin'
+  | 'users';
 
 interface IconProps {
   name: IconName;
@@ -128,6 +130,7 @@ const ICON_MAP: Record<IconName, LucideIcon> = {
   badge: Award,
   'map-pin': MapPin,
   rupee: IndianRupee,
+  users: Users,
 };
 
 export const Icon: React.FC<IconProps> = ({

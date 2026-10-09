@@ -7,7 +7,7 @@
  * 4. Discount Calculation
  * 5. Instant Redemption
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ import { CustomerCard } from '../../components/customer/CustomerCard';
 import { Button } from '../../components/common/Button';
 import { Icon } from '../../components/common/Icon';
 import { QRService } from '../../services/qr/qrService';
+import { TransactionService } from '../../services/transactions/transactionService';
 
 import { RootStackParamList } from '../../types/navigation';
 
@@ -39,8 +40,40 @@ export const CustomerDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'CustomerDetails'>>();
 
+  const { customer: initialCustomer, qrSessionId, discountPercentage: initialDiscount } = route.params;
+  const [customer, setCustomer] = useState(initialCustomer);
 
-  const { customer, qrSessionId, discountPercentage } = route.params;
+  useEffect(() => {
+    const fetchCustomerApi = async () => {
+      try {
+        const custId = initialCustomer.id || initialCustomer.customerId || initialCustomer.customId;
+        if (custId) {
+          const apiData = await TransactionService.getCustomerById(custId);
+          if (apiData) {
+            setCustomer(prev => ({
+              ...prev,
+              ...apiData,
+              customerId: apiData.customId || apiData.customerId || apiData.displayId || prev.customerId,
+              displayId: apiData.displayId || apiData.customId || apiData.customerId || prev.displayId,
+              customId: apiData.customId || apiData.displayId || apiData.customerId || prev.customId,
+            }));
+          }
+        }
+      } catch (err) {
+        console.log('[API DEBUG] getCustomerById error:', err);
+      }
+    };
+    fetchCustomerApi();
+  }, [initialCustomer]);
+
+  const effectiveDiscount = Number(
+    initialDiscount ??
+    customer?.group?.discountPercentage ??
+    (customer as any)?.group?.discountPercent ??
+    (customer as any)?.discountPercentage ??
+    (customer as any)?.discountPercent ??
+    0
+  );
 
   // --- Step 1: OTP State ---
   const [otpInput, setOtpInput] = useState('');
@@ -140,13 +173,13 @@ export const CustomerDetailsScreen: React.FC = () => {
     }
 
     setAmountError(null);
-    const discountAmount = Number(((rawVal * discountPercentage) / 100).toFixed(2));
+    const discountAmount = Number(((rawVal * effectiveDiscount) / 100).toFixed(2));
     const finalAmount = Number((rawVal - discountAmount).toFixed(2));
 
     navigation.navigate('TransactionConfirmation', {
       customer,
       qrSessionId,
-      discountPercentage,
+      discountPercentage: effectiveDiscount,
       fuelAmount: rawVal,
       discountAmount,
       finalAmount,
@@ -170,7 +203,7 @@ export const CustomerDetailsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Verification Success Pill */}
-       
+
 
         {/* Customer Information Card */}
         <CustomerCard customer={customer} />
@@ -187,7 +220,7 @@ export const CustomerDetailsScreen: React.FC = () => {
               <View style={styles.sectionTitleBox}>
                 <Text style={[typography.h3, styles.sectionTitle]}>OTP Verification</Text>
                 <Text style={[typography.caption, styles.sectionSubtitle]}>
-                  Enter 4-6 digit code provided by customer
+                  Enter 6 digit code provided by customer
                 </Text>
               </View>
             </View>
