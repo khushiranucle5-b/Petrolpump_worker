@@ -28,12 +28,15 @@ import { Loading } from '../../components/common/Loading';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
 import { RootStackParamList } from '../../types/navigation';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const HistoryScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [filterType, setFilterType] = useState<HistoryFilterType>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const debouncedSearch = useDebounce(searchQuery, 3000);
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(false);
@@ -60,7 +63,7 @@ export const HistoryScreen: React.FC = () => {
     try {
       const response = await TransactionService.getTransactions({
         filterType,
-        searchQuery,
+        searchQuery: debouncedSearch.trim(),
         page: pageNum,
         limit: 10,
       });
@@ -83,10 +86,16 @@ export const HistoryScreen: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 2) {
+      fetchHistory(1);
+    }
+  }, [debouncedSearch, filterType]);
+
   useFocusEffect(
     useCallback(() => {
       fetchHistory(1, true);
-    }, [filterType, searchQuery])
+    }, [])
   );
 
   const onRefresh = () => {

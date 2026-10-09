@@ -42,7 +42,7 @@ export const TransactionDetailsScreen: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchDetails();
   }, [initialTransaction.id]);
 
@@ -63,112 +63,112 @@ export const TransactionDetailsScreen: React.FC = () => {
       ) : (
 
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top Header Card */}
-        <View style={styles.topCard}>
-          <View style={styles.topHeader}>
-            <View>
-              <Text style={[typography.caption, styles.txnLabel]}>RECEIPT ID</Text>
-              <Text style={[typography.h2, styles.txnId]}>
-                {transaction.transactionId}
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Top Header Card */}
+          <View style={styles.topCard}>
+            <View style={styles.topHeader}>
+              <View>
+                <Text style={[typography.caption, styles.txnLabel]}>RECEIPT ID</Text>
+                <Text style={[typography.h2, styles.txnId]}>
+                  {transaction.transactionId}
+                </Text>
+              </View>
+              <StatusBadge status={transaction.status} />
+            </View>
+
+            <View style={styles.timestampRow}>
+              <Icon name="history" size={14} color={colors.textMuted} />
+              <Text style={[typography.caption, styles.timestampText]}>
+                Recorded on {formatDateTime(transaction.createdAt)}
               </Text>
             </View>
-            <StatusBadge status={transaction.status} />
           </View>
 
-          <View style={styles.timestampRow}>
-            <Icon name="history" size={14} color={colors.textMuted} />
-            <Text style={[typography.caption, styles.timestampText]}>
-              Recorded on {formatDateTime(transaction.createdAt)}
+          {/* Customer & Group Information Card */}
+          <View style={styles.card}>
+            <Text style={[typography.h4, styles.cardTitle]}>
+              Customer & Account Information
             </Text>
-          </View>
-        </View>
 
-        {/* Customer & Group Information Card */}
-        <View style={styles.card}>
-          <Text style={[typography.h4, styles.cardTitle]}>
-            Customer & Account Information
-          </Text>
+            <View style={styles.row}>
+              <Text style={[typography.bodySmall, styles.label]}>Customer Name</Text>
+              <Text style={[typography.bodyMedium, styles.value]}>
+                {transaction.customerName}
+              </Text>
+            </View>
 
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Customer Name</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.customerName}
-            </Text>
-          </View>
+            <View style={styles.row}>
+              <Text style={[typography.bodySmall, styles.label]}>Customer ID</Text>
+              <Text style={[typography.bodyMedium, styles.value]}>
+                {transaction.customerId}
+              </Text>
+            </View>
 
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Customer ID</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.customerId}
-            </Text>
-          </View>
-
-          {/* <View style={styles.row}>
+            {/* <View style={styles.row}>
             <Text style={[typography.bodySmall, styles.label]}>Mobile Number</Text>
             <Text style={[typography.bodyMedium, styles.value]}>
               {transaction.customerMobile}
             </Text>
           </View> */}
 
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Affiliated Group</Text>
-            <Text style={[typography.bodyMedium, styles.groupValue]}>
-              {transaction.groupName}
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={[typography.bodySmall, styles.label]}>Group Type</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>
-              {transaction.groupType}
-            </Text>
-          </View>
-        </View>
-
-
-
-        {/* Financial Breakdown Card */}
-        <View style={styles.card}>
-          <Text style={[typography.h4, styles.cardTitle]}>
-            Financial Settlement Breakdown
-          </Text>
-
-          <View style={styles.row}>
-            <Text style={[typography.bodyMedium, styles.label]}>Fuel Total (Meter)</Text>
-            <Text style={[typography.bodyLarge, styles.value]}>
-              {formatCurrency(transaction.fuelAmount)}
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={[typography.bodyMedium, styles.discountLabel]}>
-              Group Discount ({transaction.discountPercentage}%)
-            </Text>
-            <Text style={[typography.bodyLarge, styles.discountValue]}>
-              - {formatCurrency(transaction.discountAmount)}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={[styles.row, styles.finalRow]}>
-            <View>
-              <Text style={[typography.label, styles.finalTitle]}>
-                FINAL AMOUNT 
-              </Text>
-              <Text style={[typography.caption, styles.finalSub]}>
-                Verified & Settled
+            <View style={styles.row}>
+              <Text style={[typography.bodySmall, styles.label]}>Affiliated Group</Text>
+              <Text style={[typography.bodyMedium, styles.groupValue]}>
+                {transaction.groupName}
               </Text>
             </View>
-            <Text style={[typography.amountLarge, styles.finalAmount]}>
-              {formatCurrency(transaction.finalAmount)}
-            </Text>
-          </View>
-        </View>
 
-       
-      </ScrollView>
+            <View style={styles.row}>
+              <Text style={[typography.bodySmall, styles.label]}>Group Type</Text>
+              <Text style={[typography.bodyMedium, styles.value]}>
+                {transaction.groupType}
+              </Text>
+            </View>
+          </View>
+
+
+
+          {/* Financial Breakdown Card */}
+          <View style={styles.card}>
+            <Text style={[typography.h4, styles.cardTitle]}>
+              Financial Settlement Breakdown
+            </Text>
+
+            <View style={styles.row}>
+              <Text style={[typography.bodyMedium, styles.label]}>Fuel Total (Meter)</Text>
+              <Text style={[typography.bodyLarge, styles.value]}>
+                {formatCurrency(transaction.fuelAmount)}
+              </Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={[typography.bodyMedium, styles.discountLabel]}>
+                Group Discount ({transaction.discountPercentage}%)
+              </Text>
+              <Text style={[typography.bodyLarge, styles.discountValue]}>
+                - {formatCurrency(transaction.discountAmount)}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.row, styles.finalRow]}>
+              <View>
+                <Text style={[typography.label, styles.finalTitle]}>
+                  FINAL AMOUNT
+                </Text>
+                <Text style={[typography.caption, styles.finalSub]}>
+                  Verified & Settled
+                </Text>
+              </View>
+              <Text style={[typography.amountLarge, styles.finalAmount]}>
+                {formatCurrency(transaction.finalAmount)}
+              </Text>
+            </View>
+          </View>
+
+
+        </ScrollView>
       )}
     </View>
   );

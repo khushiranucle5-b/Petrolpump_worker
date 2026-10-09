@@ -158,7 +158,7 @@ export const LoginScreen: React.FC = () => {
             <>
               <Input
                 label="Enter OTP"
-                placeholder="Enter 4-6 digit OTP"
+                placeholder="Enter  OTP"
                 value={otp}
                 onChangeText={t => {
                   setOtp(t.replace(/[^0-9]/g, ''));
@@ -172,7 +172,7 @@ export const LoginScreen: React.FC = () => {
                 autoFocus
               />
               <TouchableOpacity onPress={() => setOtpSent(false)} style={styles.forgotPassBtn}>
-                <Text style={[typography.bodySmall, styles.forgotPassText]}>Change Mobile Number</Text>
+                <Text style={[typography.bodySmall, styles.forgotPassText]}>Change Mobile Number ({mobileNumber})</Text>
               </TouchableOpacity>
               <Button
                 title="VERIFY & LOGIN"

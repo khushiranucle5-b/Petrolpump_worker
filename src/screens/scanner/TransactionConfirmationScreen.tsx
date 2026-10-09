@@ -3,7 +3,7 @@
  * Final verification before server-side discount execution.
  * Protects against duplicate submissions using unique idempotency keys.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,11 +34,57 @@ export const TransactionConfirmationScreen: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [calcDisplay, setCalcDisplay] = useState<any>(null);
 
   // Generate an idempotency key once per screen load
   const idempotencyKeyRef = useRef<string>(
     `idemp_${qrSessionId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   );
+
+  useEffect(() => {
+    const fetchCalculation = async () => {
+      try {
+        const res = await TransactionService.calculateTransaction({
+          customerId: customer.id || customer.customerId || customer.customId || '',
+          qrSessionId: qrSessionId || '',
+          fuelAmount,
+          discountPercentage,
+        });
+        if (res && res.display) {
+          setCalcDisplay(res.display);
+        }
+      } catch (err) {
+        console.log('[API DEBUG] calculateTransaction error:', err);
+      }
+    };
+    fetchCalculation();
+  }, [customer, qrSessionId, fuelAmount, discountPercentage]);
+
+  const mobile = customer.mobileNumber || (customer as any).mobile || (customer as any).phone || '';
+  const rawId = customer.displayId || customer.customId || customer.customerId || customer.id || '';
+  const displayCustomerId =
+    customer.displayId ||
+    customer.customId ||
+    (customer.customerId && !customer.customerId.includes('-') ? customer.customerId : null) ||
+    (mobile ? `CUST-${mobile.slice(-4)}` : null) ||
+    (rawId ? `CUST-${rawId.replace(/-/g, '').slice(0, 8).toUpperCase()}` : 'CUST-001');
+
+  const rawGroup = (customer.group || (customer as any).Group || {}) as any;
+  const groupName = rawGroup.groupName || rawGroup.name || 'Standard Customer';
+  const groupType = rawGroup.groupType || rawGroup.type || '';
+
+  const stationName =
+    (user as any)?.station?.name ||
+    (user as any)?.stationName ||
+    (user as any)?.petrolPumpName ||
+    user?.branchName ||
+    'FuelPoint Station';
+
+  const attendantId =
+    user?.workerId ||
+    user?.customId ||
+    user?.displayId ||
+    (user?.id ? `WRK-${user.id.slice(0, 6).toUpperCase()}` : 'WRK-001');
 
   const handleRedeem = async () => {
     if (loading) return;
@@ -51,7 +97,7 @@ export const TransactionConfirmationScreen: React.FC = () => {
         qrSessionId,
         customerId: customer.id,
         fuelAmount,
-        workerId: user?.workerId || 'EMP-7842',
+        workerId: user?.workerId || user?.customId || user?.displayId || '',
         petrolPumpId: user?.petrolPumpId || 'pp-01',
         idempotencyKey: idempotencyKeyRef.current,
       });
@@ -84,7 +130,7 @@ export const TransactionConfirmationScreen: React.FC = () => {
                 qrSessionId,
                 customerId: customer.id,
                 fuelAmount,
-                workerId: user?.workerId || 'EMP-7842',
+                workerId: user?.workerId || user?.customId || user?.displayId || '',
                 petrolPumpId: user?.petrolPumpId || 'pp-01',
                 idempotencyKey: idempotencyKeyRef.current,
               });
@@ -128,28 +174,32 @@ export const TransactionConfirmationScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.row}>
             <Text style={[typography.caption, styles.label]}>CUSTOMER</Text>
-            <Text style={[typography.h4, styles.value]}>{customer.fullName}</Text>
+            <Text style={[typography.h4, styles.value]} numberOfLines={1}>
+              {calcDisplay?.customer || customer.fullName}
+            </Text>
           </View>
           <View style={styles.row}>
             <Text style={[typography.caption, styles.label]}>CUSTOMER ID</Text>
-            <Text style={[typography.bodyMedium, styles.value]}>{customer.customerId}</Text>
+            <Text style={[typography.bodyMedium, styles.value]} numberOfLines={1}>
+              {calcDisplay?.customerId || displayCustomerId}
+            </Text>
           </View>
           <View style={styles.row}>
             <Text style={[typography.caption, styles.label]}>GROUP / FLEET</Text>
-            <Text style={[typography.bodyMedium, styles.groupValue]}>
-              {customer.group.groupName} ({customer.group.groupType})
+            <Text style={[typography.bodyMedium, styles.groupValue]} numberOfLines={1}>
+              {calcDisplay?.groupFleet || `${groupName}${groupType ? ` (${groupType})` : ''}`}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={[typography.caption, styles.label]}>BRANCH TERMINAL</Text>
-            <Text style={[typography.bodySmall, styles.value]}>
-              {user?.branchName || 'Downtown City Station'}
+            <Text style={[typography.bodySmall, styles.value]} numberOfLines={1}>
+              {calcDisplay?.branchTerminal || stationName}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={[typography.caption, styles.label]}>ATTENDANT</Text>
-            <Text style={[typography.bodySmall, styles.value]}>
-              {user?.fullName || 'Worker'} ({user?.workerId || 'EMP-7842'})
+            <Text style={[typography.bodySmall, styles.value]} numberOfLines={1}>
+              {calcDisplay?.attendant || `${user?.fullName || 'Worker'} (${attendantId})`}
             </Text>
           </View>
         </View>

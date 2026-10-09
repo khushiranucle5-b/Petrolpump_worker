@@ -15,7 +15,9 @@ export interface CustomerGroupInfo {
 
 export interface CustomerProfile {
   id: string;
-  customerId: string; // e.g. "CUST-4412"
+  customerId: string; // e.g. "cust001"
+  customId?: string;
+  displayId?: string;
   fullName: string;
   mobileNumber: string;
   email?: string;

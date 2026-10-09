@@ -6,7 +6,9 @@ export type AccountStatus = 'active' | 'pending_approval' | 'suspended' | 'rejec
 
 export interface WorkerUser {
   id: string;
-  workerId: string; // Employee ID e.g. "EMP-9082"
+  workerId: string; // Employee ID e.g. "Nayra001"
+  customId?: string;
+  displayId?: string;
   fullName: string;
   email: string;
   mobileNumber: string;
